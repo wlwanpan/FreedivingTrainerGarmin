@@ -21,7 +21,11 @@ class HomeView extends WatchUi.View {
         var height = dc.getHeight();
         var cx = width / 2;
         var compact = height < 200;
+        var bubble = hasTopRightBubble();
         var y = compact ? height / 4 : height / 8;
+        if (bubble) {
+            y = (72 * height) / 176;
+        }
         var bodyFont = compact ? Graphics.FONT_XTINY : Graphics.FONT_TINY;
         var titleFont = compact ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
         var maxLine = compact ? (width * 5) / 8 : width;
@@ -46,6 +50,10 @@ class HomeView extends WatchUi.View {
         var detail = pageDetail();
         var canStart = session.canStart() && session.currentPageTable() != null;
 
+        if (canStart && bubble) {
+            drawBubbleText(dc, width, height, tr("start"), COLOR_HOLD);
+        }
+
         dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, y, titleFont, title, Graphics.TEXT_JUSTIFY_CENTER);
         y += dc.getFontHeight(titleFont) + 6;
@@ -65,8 +73,8 @@ class HomeView extends WatchUi.View {
         } else {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
             y = drawFitted(dc, cx, y, bodyFont, detail, maxLine);
-            y += 8;
-            if (canStart) {
+            if (canStart && !bubble) {
+                y += 8;
                 dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, y, titleFont, tr("start"), Graphics.TEXT_JUSTIFY_CENTER);
             }
