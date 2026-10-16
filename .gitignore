@@ -1,0 +1,12 @@
+bin/
+*.prg
+*.prg.debug.xml
+*.iq
+watch/developer_key.der
+watch/developer_key.pem
+.DS_Store
+*.swp
+node_modules/
+.idea/
+tmp/
+.Garmin/

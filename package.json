@@ -1,0 +1,11 @@
+{
+  "name": "freediving-trainer-garmin",
+  "private": true,
+  "description": "Garmin Connect IQ app and iOS companion module for FreedivingTrainer",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "build:watch": "bash scripts/build.sh",
+    "export:watch": "bash scripts/export.sh",
+    "key": "bash scripts/gen-key.sh"
+  }
+}
