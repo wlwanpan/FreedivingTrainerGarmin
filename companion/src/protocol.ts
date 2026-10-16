@@ -68,6 +68,10 @@ export type HeartRateSample = {
 
 export type WatchMessage =
   | {
+      type: 'watchReady'
+      updatedAt: number
+    }
+  | {
       type: 'watchTraining'
       running: boolean
       paused: boolean
@@ -187,6 +191,10 @@ export function parseWatchMessage(raw: unknown): WatchMessage | null {
   if (raw == null || typeof raw !== 'object') return null
   const record = raw as Record<string, unknown>
   const type = record.type
+  if (type === 'watchReady') {
+    const updatedAt = toUnixMs(record.updatedAt) ?? Date.now()
+    return { type: 'watchReady', updatedAt }
+  }
   if (type === 'heartRate') {
     const bpm = wholeNumber(record.bpm, 30, 230)
     const at = toUnixMs(record.at)

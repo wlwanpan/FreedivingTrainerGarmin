@@ -17,8 +17,8 @@ plugins: [
 The plugin turns on `bluetooth-central` background mode, the `freedivingtrainer` URL scheme, `gcm-ciq` query scheme, and Bluetooth usage strings.
 
 4. On app start, call `initialize()`, then `showDeviceSelection()` once so Garmin Connect Mobile can share the paired watch. Handle the return URL with `handleOpenURL`.
-5. Push the current session only with `slimNextSession` + `sendNextSession`. Do not send the weekly schedule.
-6. On `onMessage`, run `parseWatchMessage`. Completions already use `watchDetail: "garmin"` and millisecond timestamps (the parser multiplies 32-bit Unix seconds from Connect IQ).
+5. Push the current session only with `slimNextSession` + `sendNextSession`, including when no Garmin is paired yet. Do not send the weekly schedule. The native module stores that payload and delivers it when a watch connects or the watch app sends `watchReady`.
+6. On `onMessage`, run `parseWatchMessage`. Completions already use `watchDetail: "garmin"` and millisecond timestamps (the parser multiplies 32-bit Unix seconds from Connect IQ). If you see `watchReady`, send the current session again.
 7. After SQLite save, send `buildAck(completedAt, syncedAt)` so the watch can drop the queued row.
 
 ## Background delivery

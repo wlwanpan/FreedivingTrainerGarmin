@@ -5,6 +5,7 @@ import ConnectIQ
 private let watchAppUUID = UUID(uuidString: "0328696E-CB77-51AD-9D18-AFCB600B4221")!
 private let urlScheme = "freedivingtrainer"
 private let restorationId = "freedivingtrainer.garmin.connectiq"
+private let lastNextSessionKey = "garmin.lastNextSession"
 
 public class GarminConnectIQModule: Module {
   private let coordinator = GarminCoordinator()
@@ -62,9 +63,11 @@ private final class GarminCoordinator: NSObject, IQDeviceEventDelegate, IQAppMes
   private var apps: [UUID: IQApp] = [:]
   private var emit: ((String, [String: Any]) -> Void)?
   private var ready = false
+  private var lastNextSession: [String: Any]?
 
   func initialize(emit: @escaping (String, [String: Any]) -> Void) {
     self.emit = emit
+    lastNextSession = loadLastNextSession()
     ConnectIQ.sharedInstance().initialize(
       withUrlScheme: urlScheme,
       uiOverrideDelegate: nil,
@@ -91,10 +94,14 @@ private final class GarminCoordinator: NSObject, IQDeviceEventDelegate, IQAppMes
       ConnectIQ.sharedInstance().registerForAppMessages(app, delegate: self)
       result.append(devicePayload(device))
     }
+    pushLastNextSession()
     return result
   }
 
   func send(_ payload: [String: Any], completion: @escaping (String) -> Void) {
+    if payload["type"] as? String == "nextSession" {
+      cacheNextSession(payload)
+    }
     let connected = apps.values.filter { app in
       ConnectIQ.sharedInstance().getDeviceStatus(app.device) == .connected
     }
@@ -133,14 +140,49 @@ private final class GarminCoordinator: NSObject, IQDeviceEventDelegate, IQAppMes
 
   func deviceStatusChanged(_ device: IQDevice, status: IQDeviceStatus) {
     emit?("onDeviceStatus", devicePayload(device))
+    if status == .connected {
+      pushLastNextSession()
+    }
   }
 
   func deviceCharacteristicsDiscovered(_ device: IQDevice) {
     emit?("onDeviceStatus", devicePayload(device))
+    if ConnectIQ.sharedInstance().getDeviceStatus(device) == .connected {
+      pushLastNextSession()
+    }
   }
 
   func receivedMessage(_ message: Any, from app: IQApp) {
     emit?("onMessage", ["message": message, "device": devicePayload(app.device)])
+    if messageType(message) == "watchReady" {
+      pushLastNextSession()
+    }
+  }
+
+  private func cacheNextSession(_ payload: [String: Any]) {
+    lastNextSession = payload
+    if PropertyListSerialization.propertyList(payload, isValidFor: .xml) {
+      UserDefaults.standard.set(payload, forKey: lastNextSessionKey)
+    }
+  }
+
+  private func loadLastNextSession() -> [String: Any]? {
+    UserDefaults.standard.dictionary(forKey: lastNextSessionKey)
+  }
+
+  private func pushLastNextSession() {
+    guard let payload = lastNextSession else { return }
+    send(payload) { _ in }
+  }
+
+  private func messageType(_ message: Any) -> String? {
+    if let dict = message as? [String: Any] {
+      return dict["type"] as? String
+    }
+    if let dict = message as? NSDictionary {
+      return dict["type"] as? String
+    }
+    return nil
   }
 
   private func devicePayload(_ device: IQDevice) -> [String: Any] {

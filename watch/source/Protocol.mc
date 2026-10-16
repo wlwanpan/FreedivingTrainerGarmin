@@ -199,6 +199,13 @@ function buildHeartRate(bpm as Number, at as Number) as Dictionary {
     };
 }
 
+function buildWatchReady() as Dictionary {
+    return {
+        "type" => TYPE_WATCH_READY,
+        "updatedAt" => nowSec()
+    };
+}
+
 function formatClock(seconds as Number) as String {
     var safe = seconds;
     if (safe < 0) {
@@ -283,4 +290,10 @@ function testParseSlimSession(logger as Logger) as Boolean {
     }
     return asInt((plan as Dictionary).get("week"), 0) == 1
         && roundCount(plan as Dictionary) == 2;
+}
+
+(:test)
+function testBuildWatchReady(logger as Logger) as Boolean {
+    var payload = buildWatchReady();
+    return asTextOr(payload.get("type"), "").equals(TYPE_WATCH_READY);
 }

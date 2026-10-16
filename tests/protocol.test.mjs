@@ -108,6 +108,12 @@ describe('watch completion', () => {
 })
 
 describe('live watch messages', () => {
+  it('parses watchReady so the phone can push the current plan after pairing', () => {
+    const ready = parseWatchMessage({ type: 'watchReady', updatedAt: 1700000000 })
+    assert.equal(ready.type, 'watchReady')
+    assert.equal(ready.updatedAt, 1700000000000)
+  })
+
   it('parses heartRate and watchTraining', () => {
     const hr = parseWatchMessage({ type: 'heartRate', bpm: 72, at: 1700000000 })
     assert.equal(hr.bpm, 72)

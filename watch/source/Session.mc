@@ -46,6 +46,7 @@ class SessionController {
     var soundEnabled as Boolean = true;
 
     var ticker as Timer.Timer?;
+    var readyTicker as Timer.Timer?;
     var viewKind as Number = 0;
 
     function initialize() {
@@ -73,6 +74,29 @@ class SessionController {
         if (sound instanceof Boolean) {
             soundEnabled = sound as Boolean;
         }
+        var storedKey = Storage.getValue(STORAGE_PLAN_KEY);
+        if (storedKey instanceof String) {
+            planKey = storedKey as String;
+        }
+        var storedLocked = Storage.getValue(STORAGE_LOCKED);
+        if (storedLocked instanceof Boolean) {
+            locked = storedLocked as Boolean;
+        }
+        var storedComplete = Storage.getValue(STORAGE_PLAN_COMPLETE);
+        if (storedComplete instanceof Boolean) {
+            planComplete = storedComplete as Boolean;
+        }
+        var storedCount = Storage.getValue(STORAGE_LOGGED_COUNT);
+        if (storedCount instanceof Number) {
+            loggedCount = storedCount as Number;
+        }
+        var storedPlan = Storage.getValue(STORAGE_PLAN);
+        if (storedPlan instanceof Dictionary) {
+            var loaded = storedPlan as Dictionary;
+            if (roundCount(loaded) > 0) {
+                plan = loaded;
+            }
+        }
         loadPending();
     }
 
@@ -80,10 +104,62 @@ class SessionController {
         Storage.setValue(STORAGE_LANGUAGE, gLanguage);
         Storage.setValue(STORAGE_HAPTIC, hapticEnabled);
         Storage.setValue(STORAGE_SOUND, soundEnabled);
+        savePlanSnapshot();
         savePending();
     }
 
+    function savePlanSnapshot() as Void {
+        Storage.setValue(STORAGE_PLAN_KEY, planKey);
+        Storage.setValue(STORAGE_LOCKED, locked);
+        Storage.setValue(STORAGE_PLAN_COMPLETE, planComplete);
+        Storage.setValue(STORAGE_LOGGED_COUNT, loggedCount);
+        if (plan != null) {
+            Storage.setValue(STORAGE_PLAN, plan as Dictionary);
+        } else {
+            Storage.deleteValue(STORAGE_PLAN);
+        }
+    }
+
     function handlePhone(message as Dictionary) as Void {
+        acknowledgeList(message.get("syncedAt"));
+        var type = asTextOr(message.get("type"), "");
+        if (type.equals(TYPE_ACK)) {
+            var id = asInt(message.get("completedAt"), 0);
+            if (id > 0) {
+                removePending(id);
+            }
+            return;
+        }
+
+        // A live table is owned by the watch. Phone updates may refresh the
+        // next-session snapshot, but they must never pause, cancel, or replace it.
+        if (running) {
+            if (type.equals(TYPE_PHONE_TRAINING)) {
+                applyPhoneTraining(message);
+                return;
+            }
+            if (type.equals(TYPE_NEXT_SESSION)) {
+                applyPlan(message);
+                flushPending();
+            }
+            return;
+        }
+
+        applyPhonePreferences(message);
+        if (type.equals(TYPE_PHONE_TRAINING)) {
+            applyPhoneTraining(message);
+            return;
+        }
+        if (type.equals(TYPE_NEXT_SESSION)) {
+            applyPlan(message);
+            flushPending();
+            return;
+        }
+        applyPhoneTraining(message);
+        flushPending();
+    }
+
+    function applyPhonePreferences(message as Dictionary) as Void {
         var language = asText(message.get("language"));
         if (language != null) {
             setLanguage(language);
@@ -97,27 +173,6 @@ class SessionController {
             soundEnabled = asFlag(message.get("trainingSound"));
             Storage.setValue(STORAGE_SOUND, soundEnabled);
         }
-
-        acknowledgeList(message.get("syncedAt"));
-        var type = asTextOr(message.get("type"), "");
-        if (type.equals(TYPE_ACK)) {
-            var id = asInt(message.get("completedAt"), 0);
-            if (id > 0) {
-                removePending(id);
-            }
-            return;
-        }
-        if (type.equals(TYPE_PHONE_TRAINING)) {
-            applyPhoneTraining(message);
-            return;
-        }
-        if (type.equals(TYPE_NEXT_SESSION)) {
-            applyPlan(message);
-            flushPending();
-            return;
-        }
-        applyPhoneTraining(message);
-        flushPending();
     }
 
     function applyPhoneTraining(message as Dictionary) as Void {
@@ -143,18 +198,9 @@ class SessionController {
         }
         if (running) {
             if (changed) {
-                var tableSession = active != null && asInt((active as Dictionary).get("week"), 0) == 0;
-                var erased = asTextOr(message.get("sync"), "").equals("erase");
-                if (erased || !tableSession) {
-                    planKey = key;
-                    abort(false);
-                    installPlan(message);
-                    lostNotice = erased ? tr("erased") : tr("planChanged");
-                    showHome();
-                } else {
-                    planKey = key;
-                }
+                planKey = key;
             }
+            installPlan(message);
             return;
         }
         if (changed) {
@@ -189,18 +235,20 @@ class SessionController {
             locked = true;
             planComplete = false;
             plan = null;
-            return;
-        }
-        if (asFlag(message.get("complete"))) {
+        } else if (asFlag(message.get("complete"))) {
             locked = false;
             planComplete = true;
             finished = false;
             plan = null;
-            return;
+        } else {
+            locked = false;
+            planComplete = false;
+            plan = parsePlan(message);
         }
-        locked = false;
-        planComplete = false;
-        plan = parsePlan(message);
+        savePlanSnapshot();
+        if (!needsPhonePlan()) {
+            stopReadyPulse();
+        }
     }
 
     function canStart() as Boolean {
@@ -257,6 +305,7 @@ class SessionController {
         lostNotice = "";
         phaseTitle = "";
         remaining = 0;
+        stopReadyPulse();
         startHeartRate();
         startClock();
         advance();
@@ -593,8 +642,48 @@ class SessionController {
         return plan;
     }
 
+    function needsPhonePlan() as Boolean {
+        return !running && !locked && !planComplete && plan == null;
+    }
+
+    function requestPhonePlan() as Void {
+        if (running || comm == null) {
+            return;
+        }
+        (comm as CommLink).send(buildWatchReady());
+    }
+
+    function startReadyPulse() as Void {
+        requestPhonePlan();
+        if (!needsPhonePlan()) {
+            stopReadyPulse();
+            return;
+        }
+        if (readyTicker != null) {
+            return;
+        }
+        readyTicker = new Timer.Timer();
+        (readyTicker as Timer.Timer).start(method(:onReadyPulse), READY_PULSE_MS, true);
+    }
+
+    function onReadyPulse() as Void {
+        if (!needsPhonePlan()) {
+            stopReadyPulse();
+            return;
+        }
+        requestPhonePlan();
+    }
+
+    function stopReadyPulse() as Void {
+        if (readyTicker != null) {
+            (readyTicker as Timer.Timer).stop();
+            readyTicker = null;
+        }
+    }
+
     function showHome() as Void {
         viewKind = 0;
+        startReadyPulse();
         WatchUi.switchToView(new HomeView(self), new HomeDelegate(self), WatchUi.SLIDE_RIGHT);
     }
 
@@ -625,4 +714,96 @@ function testSessionStartAndFinish(logger as Test.Logger) as Boolean {
     session.startedAt = nowSec() - 60 - 90 - 120;
     session.advance();
     return session.finished || session.remaining >= 0;
+}
+
+(:test)
+function testPhoneUpdateDoesNotAbortRunningSession(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    session.restore();
+    session.handlePhone({
+        "type" => TYPE_NEXT_SESSION,
+        "name" => "Week 1 · CO2",
+        "tableType" => "co2",
+        "breatheUpSeconds" => 60,
+        "holdSeconds" => 90,
+        "restSeconds" => 120,
+        "rounds" => [{"hold" => 90, "rest" => 120}, {"hold" => 90, "rest" => 105}],
+        "week" => 1,
+        "sessionIndex" => 1,
+        "planKey" => "beginner:1:"
+    } as Dictionary);
+    if (!session.startPlan()) {
+        return false;
+    }
+    var remaining = session.remaining;
+    var phases = session.phases.size();
+    session.handlePhone({
+        "type" => TYPE_NEXT_SESSION,
+        "name" => "Week 2 · O2",
+        "tableType" => "o2",
+        "breatheUpSeconds" => 60,
+        "holdSeconds" => 60,
+        "restSeconds" => 120,
+        "rounds" => [{"hold" => 60, "rest" => 120}],
+        "week" => 2,
+        "sessionIndex" => 1,
+        "planKey" => "beginner:2:",
+        "sync" => "erase",
+        "trainingHaptic" => false,
+        "phoneTraining" => {"running" => true}
+    } as Dictionary);
+    if (!session.running || session.paused || session.finishing) {
+        return false;
+    }
+    if (session.remaining != remaining || session.phases.size() != phases) {
+        return false;
+    }
+    if (!session.hapticEnabled) {
+        return false;
+    }
+    session.togglePause();
+    return session.running && session.paused;
+}
+
+(:test)
+function testWatchExitStillCancelsAfterPhoneUpdate(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    session.restore();
+    if (!session.startCo2()) {
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_NEXT_SESSION,
+        "planKey" => "beginner:1:",
+        "sync" => "erase",
+        "phoneTraining" => {"running" => false, "paused" => true}
+    } as Dictionary);
+    if (!session.running || session.paused) {
+        return false;
+    }
+    session.exitSession();
+    return !session.running && !session.paused;
+}
+
+(:test)
+function testPhonePlanInstallsWhenIdle(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    session.handlePhone({
+        "type" => TYPE_NEXT_SESSION,
+        "name" => "Week 1 · CO2",
+        "tableType" => "co2",
+        "breatheUpSeconds" => 60,
+        "holdSeconds" => 90,
+        "restSeconds" => 120,
+        "rounds" => [{"hold" => 90, "rest" => 120}, {"hold" => 90, "rest" => 105}],
+        "week" => 1,
+        "sessionIndex" => 1,
+        "planKey" => "beginner:1:"
+    } as Dictionary);
+    if (session.plan == null || session.running) {
+        return false;
+    }
+    return asTextOr((session.plan as Dictionary).get("name"), "").equals("Week 1 · CO2")
+        && session.planKey.equals("beginner:1:")
+        && !session.needsPhonePlan();
 }

@@ -17,6 +17,7 @@ class FreedivingTrainerApp extends Application.AppBase {
         controller.restore();
         link.start();
         controller.flushPending();
+        controller.startReadyPulse();
         session = controller;
         comm = link;
     }
@@ -27,6 +28,7 @@ class FreedivingTrainerApp extends Application.AppBase {
             if (controller.running) {
                 controller.abort(false);
             }
+            controller.stopReadyPulse();
             controller.persist();
         }
         if (comm != null) {

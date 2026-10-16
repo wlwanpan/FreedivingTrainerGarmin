@@ -10,6 +10,10 @@ class HomeView extends WatchUi.View {
         session = owner;
     }
 
+    function onShow() as Void {
+        session.startReadyPulse();
+    }
+
     function onUpdate(dc as Dc) as Void {
         dc.setColor(COLOR_BG, COLOR_BG);
         dc.clear();

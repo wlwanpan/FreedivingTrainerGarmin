@@ -8,10 +8,16 @@ const STORAGE_PENDING as String = "pendingSessionCompletions";
 const STORAGE_LANGUAGE as String = "preferredLanguage";
 const STORAGE_HAPTIC as String = "trainingHapticEnabled";
 const STORAGE_SOUND as String = "trainingSoundEnabled";
+const STORAGE_PLAN as String = "currentPlan";
+const STORAGE_PLAN_KEY as String = "currentPlanKey";
+const STORAGE_LOCKED as String = "planLocked";
+const STORAGE_PLAN_COMPLETE as String = "planComplete";
+const STORAGE_LOGGED_COUNT as String = "loggedCount";
 
 const TYPE_NEXT_SESSION as String = "nextSession";
 const TYPE_PHONE_TRAINING as String = "phoneTraining";
 const TYPE_WATCH_TRAINING as String = "watchTraining";
+const TYPE_WATCH_READY as String = "watchReady";
 const TYPE_HEART_RATE as String = "heartRate";
 const TYPE_SESSION_COMPLETE as String = "sessionComplete";
 const TYPE_ACK as String = "ack";
@@ -39,6 +45,7 @@ const MAX_HR_SAMPLES as Number = 40;
 const HR_MIN_GAP_SEC as Number = 10;
 const TICK_MS as Number = 1000;
 const TRAINING_PULSE_SEC as Number = 15;
+const READY_PULSE_MS as Number = 10000;
 const MAX_PENDING as Number = 5;
 
 (:color)

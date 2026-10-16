@@ -58,7 +58,15 @@ After a save, also send:
 
 `slimNextSession` and `buildAck` in `companion/src/protocol.ts` build these payloads.
 
+The phone should call `sendNextSession` whenever the current session changes, even if no Garmin is connected yet. The native module keeps the last payload and delivers it when a watch pairs or when the watch app opens.
+
 ## Watch → phone (`Communications.transmit` → `IQAppMessageDelegate`)
+
+When the watch app opens (and while home still has no plan), it asks the phone for the current session:
+
+```json
+{ "type": "watchReady", "updatedAt": 1700000000 }
+```
 
 Live heart rate, about every 10 seconds while both apps are connected:
 
