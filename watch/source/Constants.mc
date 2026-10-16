@@ -41,11 +41,36 @@ const TICK_MS as Number = 1000;
 const TRAINING_PULSE_SEC as Number = 15;
 const MAX_PENDING as Number = 5;
 
+(:color)
 const COLOR_BG as Number = 0x0D2B38;
+(:color)
 const COLOR_TEXT as Number = 0xF4F9F9;
+(:color)
 const COLOR_MUTED as Number = 0x52798A;
+(:color)
 const COLOR_HOLD as Number = 0x14B8A6;
+(:color)
 const COLOR_REST as Number = 0x06B6D4;
+(:color)
 const COLOR_BREATHE as Number = 0x0D9488;
+(:color)
 const COLOR_ALERT as Number = 0xF43F5E;
+(:color)
 const COLOR_PAUSED as Number = 0x94A3B8;
+
+(:mono)
+const COLOR_BG as Number = 0x000000;
+(:mono)
+const COLOR_TEXT as Number = 0xFFFFFF;
+(:mono)
+const COLOR_MUTED as Number = 0xFFFFFF;
+(:mono)
+const COLOR_HOLD as Number = 0xFFFFFF;
+(:mono)
+const COLOR_REST as Number = 0xFFFFFF;
+(:mono)
+const COLOR_BREATHE as Number = 0xFFFFFF;
+(:mono)
+const COLOR_ALERT as Number = 0xFFFFFF;
+(:mono)
+const COLOR_PAUSED as Number = 0xFFFFFF;

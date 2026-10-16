@@ -48,20 +48,21 @@ export CONNECTIQ_SDK=/path/to/connectiq-sdk-lin-9.2.0-*
 ./scripts/build.sh fenix7
 ```
 
-Sideload `bin/FreedivingTrainer-fenix7.prg` in the simulator (`connectiq`, then `monkeydo … fenix7`) or copy it to a watch. Test on at least one round device (fēnix / Forerunner) and one MIP device (Instinct / Descent) before you export.
+Sideload `bin/FreedivingTrainer-fenix7.prg` in the simulator (`connectiq`, then `monkeydo … fenix7`) or copy it to a watch. Test a round AMOLED device (fēnix / Forerunner / Descent G2), a color MIP device (Descent Mk2), and a 1-bit MIP device (Descent G1 / Instinct 2) before you export.
 
 ## 4. Products and permissions in the manifest
 
 `watch/manifest.xml` currently ships these products, all compiled in this repo:
 
+- Descent G1 (176×176 1-bit MIP, API 3.4), Descent G2 (390×390 AMOLED, API 5.1)
 - Descent Mk2, Descent Mk3 51mm
 - Epix 2
 - fēnix 7, fēnix 8 Solar 47mm
 - Forerunner 965
-- Instinct 2
+- Instinct 2 (same 1-bit family as G1)
 - Venu 3
 
-Add more `<iq:product>` rows (fēnix 6/7S/7X, Forerunner 255/265, vívoactive 5, Instinct 3, …) after you download those device files in SDK Manager. Then:
+1-bit products compile a black/white theme (`:mono` in `watch/monkey.jungle`) so teal colors do not disappear into the palette. Add more `<iq:product>` rows (fēnix 6/7S/7X, Forerunner 255/265, vívoactive 5, Instinct 3, …) after you download those device files in SDK Manager. Then:
 
 - `Communications` — phone companion BLE
 - `Sensor` — Garmin optical heart rate
@@ -97,7 +98,7 @@ Suggested listing copy:
 - **Description:** Breath-hold tables on your Garmin. Run CO2 and O2 tables on the watch, or take the current session from the Freediving Trainer iPhone app. Completions sync to the phone over Bluetooth when the iPhone app is reachable. Keep the watch app on screen for the whole table; leaving it stops the timer.
 - **Companion app:** iOS Freediving Trainer (`com.wlwanpan.FreedivingTrainer`). Link the App Store URL.
 - **Privacy policy URL:** required if you collect user data. Heart rate is measured on the watch and sent to the iPhone app the user already installed. It is not uploaded to Garmin Connect by this app.
-- Screenshots: home (plan / CO2 / O2), running hold with large clock, saved/sync screen. Capture them from the simulator (360×360 and a 416×416 round, plus a 176×176 Instinct-class MIP if you support it).
+- Screenshots: home (plan / CO2 / O2), running hold with large clock, saved/sync screen. Capture them from the simulator (a 390×390 Descent G2 / similar round, a 416×416 round, plus 176×176 Descent G1 / Instinct 2 MIP).
 - Category: Training or Health & Fitness.
 - Languages: English, French, Spanish, German, Korean (must match `watch/manifest.xml`).
 

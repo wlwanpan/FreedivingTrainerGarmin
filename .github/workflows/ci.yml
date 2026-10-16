@@ -25,3 +25,7 @@ jobs:
           java-version: '17'
       - name: Compile fenix7
         run: ./scripts/build.sh fenix7
+      - name: Compile descentg1
+        run: ./scripts/build.sh descentg1
+      - name: Compile descentg2
+        run: ./scripts/build.sh descentg2

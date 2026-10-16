@@ -1,3 +1,10 @@
 project.manifest = manifest.xml
 base.sourcePath = source
-base.excludeAnnotations = test
+base.excludeAnnotations = test;mono
+
+# 1-bit MIP (Descent G1, Instinct 2): teal theme colors collapse to black
+# and hide text. Compile the (:mono) black/white constants instead.
+instinct2.excludeAnnotations = test;color
+instinct2.resourcePath = resources;resources-mono
+descentg1.excludeAnnotations = test;color
+descentg1.resourcePath = resources;resources-mono
