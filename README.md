@@ -41,10 +41,10 @@ PROTOCOL.md
 
 ```bash
 export CONNECTIQ_SDK=/path/to/unpacked/sdk
-./scripts/build.sh fenix7
+./scripts/build.sh descentg1
 ```
 
-6. Simulator: `connectiq`, then `monkeydo bin/FreedivingTrainer-fenix7.prg fenix7`.
+6. Simulator: `connectiq`, then `monkeydo bin/FreedivingTrainer-descentg1.prg descentg1`.
 
 `npm test` runs the protocol tests without the SDK.
 

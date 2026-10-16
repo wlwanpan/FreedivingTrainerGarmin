@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.System;
 import Toybox.WatchUi;
 
 class SessionView extends WatchUi.View {
@@ -17,6 +18,7 @@ class SessionView extends WatchUi.View {
         var height = dc.getHeight();
         var cx = width / 2;
         var color = phaseColor(session.phaseTitle, session.paused);
+        var bubble = hasHeartRateBubble();
 
         var clockFont = Graphics.FONT_NUMBER_MEDIUM;
         if (height >= 240) {
@@ -32,8 +34,12 @@ class SessionView extends WatchUi.View {
         var labelFont = height < 200 ? Graphics.FONT_XTINY : Graphics.FONT_TINY;
         var labelY = height < 200 ? clockY - dc.getFontHeight(labelFont) - 4 : height / 8;
         var label = session.paused ? tr("paused") : trPhase(session.phaseTitle);
+        var labelX = cx;
+        if (bubble) {
+            labelX = labelCenterLeftOfBubble(dc, label, labelFont, width);
+        }
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, labelY, labelFont, label, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(labelX, labelY, labelFont, label, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx, clockY, clockFont, formatClock(session.remaining), Graphics.TEXT_JUSTIFY_CENTER);
 
         var y = clockY + dc.getFontHeight(clockFont) + 4;
@@ -42,13 +48,45 @@ class SessionView extends WatchUi.View {
             dc.drawText(cx, y, Graphics.FONT_XTINY, session.roundText, Graphics.TEXT_JUSTIFY_CENTER);
             y += dc.getFontHeight(Graphics.FONT_XTINY) + 2;
         }
-        if (session.bpm > 0) {
+        if (bubble) {
+            drawBubbleBpm(dc, width, height);
+        } else if (session.bpm > 0) {
             dc.drawText(cx, y, Graphics.FONT_XTINY, session.bpm.toString() + " bpm", Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(Graphics.FONT_XTINY) + 2;
         }
 
         var action = session.paused ? tr("resume") : tr("pause");
         dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (height * 13) / 16, labelFont, action, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // Descent G1 and Instinct 2 share a 176 semi-octagon screen. The top-right
+    // lobe is a circle centered at (142, 42) with radius 27 in that framebuffer.
+    function hasHeartRateBubble() as Boolean {
+        if (!(System has :SCREEN_SHAPE_SEMI_OCTAGON)) {
+            return false;
+        }
+        return System.getDeviceSettings().screenShape == System.SCREEN_SHAPE_SEMI_OCTAGON;
+    }
+
+    function labelCenterLeftOfBubble(dc as Dc, label as String, font as Graphics.FontType, width as Number) as Number {
+        var labelWidth = dc.getTextWidthInPixels(label, font);
+        var limit = (110 * width) / 176;
+        var labelX = limit - labelWidth / 2;
+        if (labelX < labelWidth / 2) {
+            return labelWidth / 2;
+        }
+        return labelX;
+    }
+
+    function drawBubbleBpm(dc as Dc, width as Number, height as Number) as Void {
+        var text = session.bpm > 0 ? session.bpm.toString() : "--";
+        var font = Graphics.FONT_XTINY;
+        var lineHeight = dc.getFontHeight(font);
+        var bubbleX = (142 * width) / 176;
+        var bubbleY = (42 * height) / 176;
+        var top = bubbleY - lineHeight;
+        dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(bubbleX, top, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(bubbleX, top + lineHeight, font, "bpm", Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
