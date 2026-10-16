@@ -4,7 +4,16 @@ base.excludeAnnotations = test;mono
 
 # 1-bit MIP (Descent G1, Instinct 2): teal theme colors collapse to black
 # and hide text. Compile the (:mono) black/white constants instead.
+# Both of these devices want a 62x62 launcher icon (see resources-mono).
 instinct2.excludeAnnotations = test;color
 instinct2.resourcePath = resources;resources-mono
 descentg1.excludeAnnotations = test;color
 descentg1.resourcePath = resources;resources-mono
+
+# Launcher icon pixel size is per-device, not per screen resolution
+# (fr965 and venu3 are both 454x454 but 65 vs 70). Last resource path wins.
+descentg2.resourcePath = $(descentg2.resourcePath);resources-launcher-60
+descentmk351mm.resourcePath = $(descentmk351mm.resourcePath);resources-launcher-60
+epix2.resourcePath = $(epix2.resourcePath);resources-launcher-60
+fr965.resourcePath = $(fr965.resourcePath);resources-launcher-65
+venu3.resourcePath = $(venu3.resourcePath);resources-launcher-70
