@@ -1,40 +1,65 @@
-# Build a Garmin connect IQ apps.
+# Freediving Trainer for Garmin
 
-Using [Monkey C](https://developer.garmin.com/connect-iq/monkey-c/), build them with the [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/), and document steps needed to submit it to Connect IQ Store.
+Connect IQ device app that runs CO2 and O2 breath-hold tables on a Garmin watch and syncs finished sessions to the [FreedivingTrainer](https://github.com/wlwanpan/FreedivingTrainer) iPhone app.
 
-The app is a stand alone app that can pair with an IOS app https://github.com/wlwanpan/FreedivingTrainer. Once paired and connected, all session performed on the app should be sync to the main IOS app. The aim is to build an equivalent of the main IOS app's target IOS watch but for Garmin watches instead.
+The user installs FreedivingTrainer from the App Store, then installs this app from the Connect IQ Store onto a paired Garmin. Those installs are linked only by an **app UUID** and Bluetooth, not by a shared bundle id.
 
-The user installs the FreedivingTrainer app from the App Store, then installs the watch app from the Connect IQ Store onto a paired Garmin. Those two installs are linked only by an app UUID and Bluetooth, not by a shared bundle id.
+| | |
+|---|---|
+| Application id | `0328696ecb7751ad9d18afcb600b4221` |
+| Type | watch-app (Monkey C, Connect IQ 3.2+) |
+| Companion | Expo native module around `ConnectIQ.framework` |
+| iOS scheme | `freedivingtrainer` |
 
-The phone side is this existing app. Garmin’s [iOS companion SDK](https://github.com/garmin/connectiq-companion-app-sdk-ios) links into the iOS binary as a native module. On iOS it talks BLE directly to the watch. The user still needs Garmin Connect (or the Connect IQ Store app) to pair the watch and install updates.
+## What the watch does
 
-## Sync, compared with the current watch bridge
+- Standalone CO2 and O2 tables (same defaults as the iPhone app: 8 rounds, 90s CO2 hold / 60s O2 hold, 60s breathe-up).
+- Current plan session from the phone when the watch app is open (`sendMessage` → `Communications.registerForPhoneAppMessages`).
+- One-second timer, large clock, `Attention.vibrate` / `playTone` on phase changes, Garmin `Sensor` heart rate.
+- Completion payload (`tableType`, rounds, timestamps, short heart-rate list) queued in `Application.Storage` and sent with `Communications.transmit` until the phone ACKs.
 
-The Apple Watch bridge in `targets/watch/session.swift` and `hooks/useWatchBridge.ts` has three channels:
+Keep the app on screen for the whole table. If the user leaves, the timer stops. Background Connect IQ work is a short task, at most about every five minutes, with no vibration and no live heart rate.
 
-| What moves | Apple Watch today | Garmin equivalent |
-|---|---|---|
-| Next table, language, settings | `updateApplicationContext` — latest snapshot, delivered when the watch app next runs | `sendMessage` from the iOS SDK to `Communications.registerForPhoneAppMessages`. Delivered while the watch app is open. A closed app can only catch a short background event. |
-| Live heart rate and “table in progress” | `sendMessage` while the watch is reachable, plus a context refresh every 15 seconds | `Communications.transmit` while both apps are connected. Fine for a sample every few seconds. Stops if the iPhone app has been killed. |
-| Finished table, queued if the phone is away | Saved in UserDefaults, then `sendMessage` with a saved-reply, falling back to `transferUserInfo`, which wakes the iPhone app | Saved in `Application.Storage`, then `transmit` when the phone app is reachable. Enabling Bluetooth LE background mode can wake the iPhone app, but that wake is less dependable than `transferUserInfo`. Retry the next time the user opens the watch app. |
+## Layout
 
-A completion payload like the one built in `sendCompletion` — table type, rounds, timestamps, and a short heart-rate list — fits this channel. The whole plan schedule does not. Connect IQ heaps are small, so the phone should send the current session only.
+```
+watch/                 Monkey C project (manifest, jungle, source, resources)
+companion/             Expo module + config plugin for the iOS app
+scripts/               SDK build, store export, developer key
+tests/                 Protocol, table, and session tests (Node)
+docs/CONNECT_IQ_STORE.md
+PROTOCOL.md
+```
 
-Two Garmin sync paths do not land in this app’s SQLite. `ActivityRecording` writes a Garmin activity that syncs to Garmin Connect. `SyncDelegate` plus `makeWebRequest` uploads to a server during a Garmin Connect sync. This app keeps sessions on the device, so the companion BLE message is the path that matches the current bridge.
+## Build the watch app
 
-## What the watch app can run
+1. Install Java 11+ and [Connect IQ SDK 9.2.0](https://developer.garmin.com/connect-iq/sdk/).
+2. In SDK Manager, download the SDK, set it active, and download Devices.
+3. Generate a signing key once (`./scripts/gen-key.sh`) and keep it.
+4. First store products (all compiled here): Descent Mk2 / Mk3 51mm, Epix 2, fēnix 7 / 8 Solar 47mm, Forerunner 965, Instinct 2, Venu 3. Add more ids in `watch/manifest.xml` after you download those device files.
+5. Compile:
 
-A Connect IQ device app can run the table while it stays on screen: a one-second timer, a large clock, `Attention.vibrate` and `playTone` for phase changes, and `Sensor` heart rate. Heart rate comes from Garmin’s sensor. It becomes an Apple Health sample only if the iPhone app writes it after the payload arrives. The watch app cannot start an `HKWorkoutSession`.
+```bash
+export CONNECTIQ_SDK=/path/to/unpacked/sdk
+./scripts/build.sh fenix7
+```
 
-If the user leaves the app, the timer stops. Background work is a short task, at most about every five minutes, with no vibration and no live heart rate. The table has to stay in the foreground for the whole session.
+6. Simulator: `connectiq`, then `monkeydo bin/FreedivingTrainer-fenix7.prg fenix7`.
 
-The UI is `WatchUi`, so the SwiftUI screens in `targets/watch/` do not carry over. Screens, memory, buttons, and vibration differ across Fenix, Forerunner, Venu, and Instinct, and each supported device is declared in the Connect IQ manifest.
+`npm test` runs the protocol tests without the SDK.
 
-## What it would take here
+## iPhone companion
 
-- A Monkey C project, built and submitted outside EAS.
-- An Expo native module around `ConnectIQ.framework`, with the Bluetooth LE background mode, sharing the watch app’s UUID.
-- A second store listing and a Garmin developer account.
-- A slimmer sync protocol: current session down, completion with heart-rate samples up, retry from watch storage until the phone acknowledges it.
+`companion/` wraps Garmin's [iOS companion SDK](https://github.com/garmin/connectiq-companion-app-sdk-ios). Wire it into FreedivingTrainer as a native module, enable Bluetooth LE background mode, and share the watch UUID. Details: [`companion/README.md`](companion/README.md) and [`PROTOCOL.md`](PROTOCOL.md).
 
-That is a second product with a similar session loop, not a second `targets/watch`. The timer and the completion record are realistic. Automatic install, HealthKit workouts, and guaranteed delivery while both apps are backgrounded are the parts the Apple Watch target has and Connect IQ does not.
+The phone sends the **current session** only. The whole plan schedule does not fit Connect IQ heaps. Completions use `watchDetail: "garmin"` so they land in the existing SQLite `sessions` table.
+
+## Connect IQ Store
+
+This is a second store listing and needs a Garmin developer account. Step-by-step export and upload: [`docs/CONNECT_IQ_STORE.md`](docs/CONNECT_IQ_STORE.md).
+
+```bash
+./scripts/export.sh   # writes bin/FreedivingTrainer.iq
+```
+
+Upload that `.iq` at [apps.garmin.com/developer](https://apps.garmin.com/developer/). Do not upload a single-device `.prg`.
