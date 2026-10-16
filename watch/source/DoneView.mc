@@ -14,16 +14,19 @@ class DoneView extends WatchUi.View {
         dc.setColor(COLOR_BG, COLOR_BG);
         dc.clear();
         var cx = dc.getWidth() / 2;
-        var y = dc.getHeight() / 3;
+        var compact = dc.getHeight() < 200;
+        var y = compact ? dc.getHeight() / 4 : dc.getHeight() / 3;
+        var titleFont = compact ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
+        var bodyFont = compact ? Graphics.FONT_XTINY : Graphics.FONT_TINY;
         dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, y, Graphics.FONT_SMALL, tr("saved"), Graphics.TEXT_JUSTIFY_CENTER);
-        y += dc.getFontHeight(Graphics.FONT_SMALL) + 8;
+        dc.drawText(cx, y, titleFont, tr("saved"), Graphics.TEXT_JUSTIFY_CENTER);
+        y += dc.getFontHeight(titleFont) + 8;
         dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
         var status = session.pendingSync ? tr("waitingPhone") : tr("sentToPhone");
-        dc.drawText(cx, y, Graphics.FONT_TINY, status, Graphics.TEXT_JUSTIFY_CENTER);
-        y += dc.getFontHeight(Graphics.FONT_TINY) + 16;
+        dc.drawText(cx, y, bodyFont, status, Graphics.TEXT_JUSTIFY_CENTER);
+        y += dc.getFontHeight(bodyFont) + 16;
         dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, y, Graphics.FONT_TINY, tr("okay"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, y, bodyFont, tr("okay"), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
 

@@ -36,7 +36,7 @@ PROTOCOL.md
 1. Install Java 11+ and [Connect IQ SDK 9.2.0](https://developer.garmin.com/connect-iq/sdk/).
 2. In SDK Manager, download the SDK, set it active, and download Devices.
 3. Generate a signing key once (`./scripts/gen-key.sh`) and keep it.
-4. First store products (all compiled here): Descent Mk2 / Mk3 51mm, Epix 2, fēnix 7 / 8 Solar 47mm, Forerunner 965, Instinct 2, Venu 3. Add more ids in `watch/manifest.xml` after you download those device files.
+4. Store products compiled here: Descent G1 / G2 / Mk2 / Mk3 51mm, Epix 2, fēnix 7 / 8 Solar 47mm, Forerunner 965, Instinct 2, Venu 3. Descent G1 and Instinct 2 are 176×176 1-bit MIP (black/white UI). Descent G2 is 390×390 AMOLED. Add more ids in `watch/manifest.xml` after you download those device files.
 5. Compile:
 
 ```bash

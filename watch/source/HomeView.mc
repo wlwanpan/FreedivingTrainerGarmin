@@ -16,7 +16,11 @@ class HomeView extends WatchUi.View {
         var width = dc.getWidth();
         var height = dc.getHeight();
         var cx = width / 2;
-        var y = height / 8;
+        var compact = height < 200;
+        var y = compact ? height / 4 : height / 8;
+        var bodyFont = compact ? Graphics.FONT_XTINY : Graphics.FONT_TINY;
+        var titleFont = compact ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
+        var maxLine = compact ? (width * 5) / 8 : width;
 
         dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
         if (session.pendingSync) {
@@ -26,8 +30,8 @@ class HomeView extends WatchUi.View {
 
         if (session.phoneTraining && session.phoneConnected()) {
             dc.setColor(COLOR_ALERT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, y, Graphics.FONT_TINY, tr("trainingOnPhone"), Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(Graphics.FONT_TINY) + 4;
+            dc.drawText(cx, y, bodyFont, tr("trainingOnPhone"), Graphics.TEXT_JUSTIFY_CENTER);
+            y += dc.getFontHeight(bodyFont) + 4;
         } else if (session.lostNotice.length() > 0) {
             dc.setColor(COLOR_ALERT, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y, Graphics.FONT_XTINY, session.lostNotice, Graphics.TEXT_JUSTIFY_CENTER);
@@ -39,28 +43,28 @@ class HomeView extends WatchUi.View {
         var canStart = session.canStart() && session.currentPageTable() != null;
 
         dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, y, Graphics.FONT_SMALL, title, Graphics.TEXT_JUSTIFY_CENTER);
-        y += dc.getFontHeight(Graphics.FONT_SMALL) + 6;
+        dc.drawText(cx, y, titleFont, title, Graphics.TEXT_JUSTIFY_CENTER);
+        y += dc.getFontHeight(titleFont) + 6;
 
         if (session.locked && session.page == PAGE_PLAN) {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, y, Graphics.FONT_TINY, tr("unlockLifetime"), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, y, bodyFont, tr("unlockLifetime"), Graphics.TEXT_JUSTIFY_CENTER);
         } else if (session.planComplete && session.page == PAGE_PLAN) {
             dc.setColor(COLOR_BREATHE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, y, Graphics.FONT_TINY, tr("weekComplete"), Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(Graphics.FONT_TINY) + 4;
+            dc.drawText(cx, y, bodyFont, tr("weekComplete"), Graphics.TEXT_JUSTIFY_CENTER);
+            y += dc.getFontHeight(bodyFont) + 4;
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y, Graphics.FONT_XTINY, tr("savedOnPhone"), Graphics.TEXT_JUSTIFY_CENTER);
         } else if (detail.length() == 0 && session.page == PAGE_PLAN) {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, y, Graphics.FONT_TINY, tr("choosePlan"), Graphics.TEXT_JUSTIFY_CENTER);
+            drawFitted(dc, cx, y, bodyFont, tr("choosePlan"), maxLine);
         } else {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, y, Graphics.FONT_TINY, detail, Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(Graphics.FONT_TINY) + 10;
+            y = drawFitted(dc, cx, y, bodyFont, detail, maxLine);
+            y += 8;
             if (canStart) {
                 dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(cx, y, Graphics.FONT_SMALL, tr("start"), Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(cx, y, titleFont, tr("start"), Graphics.TEXT_JUSTIFY_CENTER);
             }
         }
 
@@ -92,16 +96,44 @@ class HomeView extends WatchUi.View {
         );
     }
 
+    function drawFitted(dc as Dc, cx as Number, y as Number, font as FontDefinition, text as String, maxW as Number) as Number {
+        if (dc.getTextWidthInPixels(text, font) <= maxW) {
+            dc.drawText(cx, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+            return y + dc.getFontHeight(font);
+        }
+        var best = -1;
+        var i = 0;
+        var n = text.length();
+        while (i < n) {
+            if (text.substring(i, i + 1).equals(" ")) {
+                if (dc.getTextWidthInPixels(text.substring(0, i), font) <= maxW) {
+                    best = i;
+                }
+            }
+            i += 1;
+        }
+        if (best < 1) {
+            dc.drawText(cx, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+            return y + dc.getFontHeight(font);
+        }
+        dc.drawText(cx, y, font, text.substring(0, best), Graphics.TEXT_JUSTIFY_CENTER);
+        y += dc.getFontHeight(font) + 1;
+        dc.drawText(cx, y, font, text.substring(best + 1, n), Graphics.TEXT_JUSTIFY_CENTER);
+        return y + dc.getFontHeight(font);
+    }
+
     function drawDots(dc as Dc, width as Number, height as Number) as Void {
         var y = (height * 7) / 8;
         var startX = width / 2 - 16;
+        var radius = height < 200 ? 3 : 4;
         for (var i = 0; i < 3; i++) {
+            dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
+            var x = startX + i * 16;
             if (i == session.page) {
-                dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(x, y, radius);
             } else {
-                dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+                dc.drawCircle(x, y, radius);
             }
-            dc.fillCircle(startX + i * 16, y, 3);
         }
     }
 }

@@ -9,6 +9,8 @@
         minApiLevel="3.2.0">
 
         <iq:products>
+            <iq:product id="descentg1"/>
+            <iq:product id="descentg2"/>
             <iq:product id="descentmk2"/>
             <iq:product id="descentmk351mm"/>
             <iq:product id="epix2"/>
