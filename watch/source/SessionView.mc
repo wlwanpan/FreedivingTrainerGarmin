@@ -72,6 +72,7 @@ class SessionView extends WatchUi.View {
 
 // Descent G1 and Instinct 2 share a 176 semi-octagon screen. The top-right
 // lobe is a circle centered at (142, 42) with radius 27 in that framebuffer.
+// Descent G2 is round, so its START label uses drawRoundTopRightText instead.
 function hasTopRightBubble() as Boolean {
     if (!(System has :SCREEN_SHAPE_SEMI_OCTAGON)) {
         return false;
@@ -105,4 +106,75 @@ function drawBubbleText(dc as Dc, width as Number, height as Number, text as Str
     var lineHeight = dc.getFontHeight(font);
     dc.setColor(color, Graphics.COLOR_TRANSPARENT);
     dc.drawText(bubbleCenterX(width), bubbleCenterY(height) - lineHeight / 2, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+}
+
+// Descent G2 is the 390×390 round watch. START is the top-right button, the
+// same corner as Descent G1, so the home label belongs there rather than
+// under the page title.
+function hasRoundTopRightStart() as Boolean {
+    var settings = System.getDeviceSettings();
+    return settings.screenShape == System.SCREEN_SHAPE_ROUND
+        && settings.screenWidth == 390
+        && settings.screenHeight == 390;
+}
+
+// Draw text inside the circle on the ray toward that START button, about 55°
+// above 3 o'clock. Returns the y just below the glyphs.
+function drawRoundTopRightText(dc as Dc, width as Number, height as Number, text as String, color as Number) as Number {
+    var font = Graphics.FONT_SMALL;
+    var textW = dc.getTextWidthInPixels(text, font);
+    var textH = dc.getFontHeight(font);
+    var pad = 8;
+    var radius = width / 2 - pad;
+    if (radius < 1) {
+        radius = 1;
+    }
+    var cx = width / 2;
+    var cy = height / 2;
+    var hw = (textW + 1) / 2;
+    var hh = (textH + 1) / 2;
+    var dirX = 57;
+    var dirY = 82;
+    var dirLen = 100;
+    var limit = radius * radius;
+    var lo = 0;
+    var hi = radius;
+    var mid = 0;
+    var ox = 0;
+    var oy = 0;
+    var right = 0;
+    var left = 0;
+    var up = 0;
+    var down = 0;
+    var furthest = 0;
+    var corner = 0;
+    while (lo < hi) {
+        mid = (lo + hi + 1) / 2;
+        ox = (mid * dirX) / dirLen;
+        oy = (mid * dirY) / dirLen;
+        right = ox + hw;
+        left = ox - hw;
+        up = oy + hh;
+        down = oy - hh;
+        furthest = right * right + up * up;
+        corner = right * right + down * down;
+        if (corner > furthest) {
+            furthest = corner;
+        }
+        corner = left * left + up * up;
+        if (corner > furthest) {
+            furthest = corner;
+        }
+        if (furthest <= limit) {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    ox = (lo * dirX) / dirLen;
+    oy = (lo * dirY) / dirLen;
+    var top = cy - oy - hh;
+    dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+    dc.drawText(cx + ox, top, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+    return top + textH;
 }

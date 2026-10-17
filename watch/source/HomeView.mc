@@ -22,9 +22,19 @@ class HomeView extends WatchUi.View {
         var cx = width / 2;
         var compact = height < 200;
         var bubble = hasTopRightBubble();
+        var cornerStart = hasRoundTopRightStart();
+        var canStart = session.canStart() && session.currentPageTable() != null;
         var y = compact ? height / 4 : height / 8;
         if (bubble) {
             y = (72 * height) / 176;
+        }
+        if (canStart && bubble) {
+            drawBubbleText(dc, width, height, tr("start"), COLOR_HOLD);
+        } else if (canStart && cornerStart) {
+            var labelBottom = drawRoundTopRightText(dc, width, height, tr("start"), COLOR_HOLD);
+            if (labelBottom + 8 > y) {
+                y = labelBottom + 8;
+            }
         }
         var bodyFont = compact ? Graphics.FONT_XTINY : Graphics.FONT_TINY;
         var titleFont = compact ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
@@ -48,11 +58,6 @@ class HomeView extends WatchUi.View {
 
         var title = pageTitle();
         var detail = pageDetail();
-        var canStart = session.canStart() && session.currentPageTable() != null;
-
-        if (canStart && bubble) {
-            drawBubbleText(dc, width, height, tr("start"), COLOR_HOLD);
-        }
 
         dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, y, titleFont, title, Graphics.TEXT_JUSTIFY_CENTER);
@@ -73,7 +78,7 @@ class HomeView extends WatchUi.View {
         } else {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
             y = drawFitted(dc, cx, y, bodyFont, detail, maxLine);
-            if (canStart && !bubble) {
+            if (canStart && !bubble && !cornerStart) {
                 y += 8;
                 dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, y, titleFont, tr("start"), Graphics.TEXT_JUSTIFY_CENTER);
