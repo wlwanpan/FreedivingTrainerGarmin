@@ -94,7 +94,7 @@ That runs `monkeyc -e -r` and writes `bin/FreedivingTrainer.iq`. `-r` strips deb
 
 Suggested listing copy:
 
-- **Name:** Freediving Trainer
+- **Name:** Freediver & Mermaid Apnea (on the watch: "Freediver and Mermaid Apnea"; Connect IQ rejects `&` in the app name resource)
 - **Description:** Breath-hold tables on your Garmin. Run CO2 and O2 tables on the watch, or take the current session from the Freediving Trainer iPhone app. Completions sync to the phone over Bluetooth when the iPhone app is reachable. Keep the watch app on screen for the whole table; leaving it stops the timer.
 - **Companion app:** iOS Freediving Trainer (`com.wlwanpan.FreedivingTrainer`). Link the App Store URL.
 - **Privacy policy URL:** required if you collect user data. Heart rate is measured on the watch and sent to the iPhone app the user already installed. It is not uploaded to Garmin Connect by this app.
