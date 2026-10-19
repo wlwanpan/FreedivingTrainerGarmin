@@ -8,7 +8,8 @@ device="${1:-fenix7}"
 out="$root/bin/FreedivingTrainer-${device}-test.prg"
 mkdir -p "$root/bin"
 
-devices_dir="${CONNECTIQ_DEVICES:-$HOME/.Garmin/ConnectIQ/Devices}"
+ciq_home="$(bash "$root/scripts/ciq-home.sh")"
+devices_dir="${CONNECTIQ_DEVICES:-$ciq_home/Devices}"
 if [[ ! -d "$devices_dir/$device" ]]; then
   echo "Skipping Monkey C unit tests: device files for $device are not installed." >&2
   exit 0

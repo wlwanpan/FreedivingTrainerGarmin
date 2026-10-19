@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+root="$(cd "$(dirname "$0")/.." && pwd)"
+ciq_home="$(bash "$root/scripts/ciq-home.sh")"
+
 sdk_candidates=(
   "${CONNECTIQ_SDK:-}"
-  "${CONNECTIQ_HOME:-}"
-  "$HOME/.Garmin/ConnectIQ/Sdks/current"
+  "$ciq_home/Sdks/current"
   /tmp/ciq-sdk
 )
 
@@ -13,10 +15,15 @@ if [[ -n "${CONNECTIQ_SDK:-}" && -x "${CONNECTIQ_SDK}/bin/monkeyc" ]]; then
   exit 0
 fi
 
-if [[ -f "$HOME/.Garmin/ConnectIQ/current-sdk.cfg" ]]; then
-  cfg="$(tr -d '\r' < "$HOME/.Garmin/ConnectIQ/current-sdk.cfg")"
+if [[ -f "$ciq_home/current-sdk.cfg" ]]; then
+  cfg="$(tr -d '\r' < "$ciq_home/current-sdk.cfg")"
   if [[ -x "$cfg/bin/monkeyc" ]]; then
     echo "$cfg"
+    exit 0
+  fi
+  parent="$(dirname "$cfg")"
+  if [[ -x "$parent/bin/monkeyc" ]]; then
+    echo "$parent"
     exit 0
   fi
 fi
@@ -29,7 +36,7 @@ for candidate in "${sdk_candidates[@]}"; do
 done
 
 shopt -s nullglob
-for candidate in "$HOME"/.Garmin/ConnectIQ/Sdks/connectiq-sdk-*; do
+for candidate in "$ciq_home"/Sdks/connectiq-sdk-*; do
   if [[ -x "$candidate/bin/monkeyc" ]]; then
     echo "$candidate"
     exit 0

@@ -7,7 +7,8 @@ sdk="$(bash "$root/scripts/sdk.sh")"
 out="$root/bin/FreedivingTrainer.iq"
 mkdir -p "$root/bin"
 
-devices_dir="${CONNECTIQ_DEVICES:-$HOME/.Garmin/ConnectIQ/Devices}"
+ciq_home="$(bash "$root/scripts/ciq-home.sh")"
+devices_dir="${CONNECTIQ_DEVICES:-$ciq_home/Devices}"
 if [[ ! -d "$devices_dir" ]]; then
   echo "Connect IQ device files are missing at $devices_dir" >&2
   echo "The store .iq package needs a compiler.json for every product in watch/manifest.xml." >&2
