@@ -16,6 +16,7 @@ class SessionController {
     var planComplete as Boolean = false;
     var phoneTraining as Boolean = false;
     var pendingSync as Boolean = false;
+    var awaitingPhone as Boolean = false;
     var lostNotice as String = "";
     var page as Number = PAGE_PLAN;
     var screen as Number = 0;
@@ -260,6 +261,23 @@ class SessionController {
             return (comm as CommLink).phoneLikelyReachable();
         }
         return false;
+    }
+
+    // Queued completions stay on the watch until the phone ACKs. That queue
+    // does not block training. The corner spinner is only while a transfer
+    // is in flight or the last send is still waiting for an ACK.
+    function syncInProgress() as Boolean {
+        if (comm != null && (comm as CommLink).busy) {
+            return true;
+        }
+        return pendingSync && awaitingPhone;
+    }
+
+    function onTransmitFinished(ok as Boolean) as Void {
+        if (ok && pendingSync) {
+            awaitingPhone = true;
+        }
+        onTransmitOk();
     }
 
     function startPlan() as Boolean {
@@ -563,6 +581,10 @@ class SessionController {
     function savePending() as Void {
         Storage.setValue(STORAGE_PENDING, pending);
         pendingSync = pending.size() > 0;
+        if (!pendingSync) {
+            awaitingPhone = false;
+        }
+        WatchUi.requestUpdate();
     }
 
     function storePending(payload as Dictionary) as Void {
@@ -783,6 +805,38 @@ function testWatchExitStillCancelsAfterPhoneUpdate(logger as Test.Logger) as Boo
     }
     session.exitSession();
     return !session.running && !session.paused;
+}
+
+(:test)
+function testPendingSyncDoesNotBlockStart(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    var link = new CommLink(session);
+    session.setComm(link);
+    session.pendingSync = true;
+    if (session.syncInProgress() || !session.canStart()) {
+        return false;
+    }
+    link.busy = true;
+    if (!session.syncInProgress()) {
+        return false;
+    }
+    if (!session.startCo2()) {
+        return false;
+    }
+    if (!session.running || !session.pendingSync || !session.syncInProgress()) {
+        return false;
+    }
+    link.busy = false;
+    session.onTransmitFinished(true);
+    if (!session.syncInProgress()) {
+        return false;
+    }
+    session.onTransmitFinished(false);
+    if (!session.syncInProgress()) {
+        return false;
+    }
+    session.pendingSync = false;
+    return session.running && !session.syncInProgress();
 }
 
 (:test)

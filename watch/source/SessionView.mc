@@ -1,6 +1,7 @@
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 class SessionView extends WatchUi.View {
@@ -122,6 +123,17 @@ function hasRoundTopRightStart() as Boolean {
 // above 3 o'clock. Returns the y just below the glyphs.
 function drawRoundTopRightText(dc as Dc, width as Number, height as Number, text as String, color as Number) as Number {
     var font = Graphics.FONT_SMALL;
+    var box = topRightTextBox(dc, width, height, text, font);
+    var centerX = box[0] as Number;
+    var top = box[1] as Number;
+    var textH = box[2] as Number;
+    dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+    dc.drawText(centerX, top, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+    return top + textH;
+}
+
+// [centerX, top, textHeight] for a label tucked into the top-right of a round screen.
+function topRightTextBox(dc as Dc, width as Number, height as Number, text as String, font as Graphics.FontType) as Array<Number> {
     var textW = dc.getTextWidthInPixels(text, font);
     var textH = dc.getFontHeight(font);
     var pad = 8;
@@ -173,8 +185,100 @@ function drawRoundTopRightText(dc as Dc, width as Number, height as Number, text
     }
     ox = (lo * dirX) / dirLen;
     oy = (lo * dirY) / dirLen;
-    var top = cy - oy - hh;
-    dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-    dc.drawText(cx + ox, top, font, text, Graphics.TEXT_JUSTIFY_CENTER);
-    return top + textH;
+    return [cx + ox, cy - oy - hh, textH] as Array<Number>;
+}
+
+(:color)
+function spinnerHasTrack() as Boolean {
+    return true;
+}
+
+(:mono)
+function spinnerHasTrack() as Boolean {
+    return false;
+}
+
+// Small loader in the same corner as the Start label. Returns the y just below it.
+function drawSyncSpinner(dc as Dc, width as Number, height as Number, angle as Number) as Number {
+    var x = 0;
+    var y = 0;
+    var radius = 7;
+    if (height >= 360) {
+        radius = 11;
+    } else if (height >= 240) {
+        radius = 9;
+    }
+    if (hasTopRightBubble()) {
+        x = bubbleCenterX(width);
+        y = bubbleCenterY(height);
+        radius = 8;
+    } else if (System.getDeviceSettings().screenShape == System.SCREEN_SHAPE_ROUND) {
+        var box = topRightTextBox(dc, width, height, tr("start"), Graphics.FONT_SMALL);
+        x = box[0] as Number;
+        y = (box[1] as Number) + (box[2] as Number) / 2;
+    } else {
+        var inset = height < 200 ? 14 : 20;
+        x = width - inset;
+        y = inset;
+    }
+    var start = angle % 360;
+    if (start < 0) {
+        start += 360;
+    }
+    var end = start + 80;
+    if (end >= 360) {
+        end -= 360;
+    }
+    if (end == start) {
+        end = start + 1;
+    }
+    if (dc has :setAntiAlias) {
+        dc.setAntiAlias(true);
+    }
+    dc.setPenWidth(2);
+    if (spinnerHasTrack()) {
+        dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(x, y, radius, Graphics.ARC_CLOCKWISE, 0, 0);
+    }
+    dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
+    dc.drawArc(x, y, radius, Graphics.ARC_COUNTER_CLOCKWISE, start, end);
+    dc.setPenWidth(1);
+    if (dc has :setAntiAlias) {
+        dc.setAntiAlias(false);
+    }
+    return y + radius;
+}
+
+class SyncSpinner {
+    var timer as Timer.Timer?;
+    var angle as Number;
+
+    function initialize() {
+        timer = null;
+        angle = 0;
+    }
+
+    function setActive(active as Boolean) as Void {
+        if (!active) {
+            stop();
+            return;
+        }
+        if (timer != null) {
+            return;
+        }
+        timer = new Timer.Timer();
+        (timer as Timer.Timer).start(method(:onSpin), SPINNER_TICK_MS, true);
+    }
+
+    function stop() as Void {
+        if (timer != null) {
+            (timer as Timer.Timer).stop();
+            timer = null;
+        }
+    }
+
+    function onSpin() as Void {
+        angle = (angle + 30) % 360;
+        WatchUi.requestUpdate();
+    }
 }
