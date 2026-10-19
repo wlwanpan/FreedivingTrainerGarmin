@@ -99,11 +99,16 @@ function labelCenterLeftOfBubble(dc as Dc, label as String, font as Graphics.Fon
     return labelX;
 }
 
-function drawBubbleText(dc as Dc, width as Number, height as Number, text as String, color as Number) as Void {
+function fitBubbleFont(dc as Dc, text as String) as Graphics.FontType {
     var font = Graphics.FONT_TINY;
     if (dc.getTextWidthInPixels(text, font) > 50) {
         font = Graphics.FONT_XTINY;
     }
+    return font;
+}
+
+function drawBubbleText(dc as Dc, width as Number, height as Number, text as String, color as Number) as Void {
+    var font = fitBubbleFont(dc, text);
     var lineHeight = dc.getFontHeight(font);
     dc.setColor(color, Graphics.COLOR_TRANSPARENT);
     dc.drawText(bubbleCenterX(width), bubbleCenterY(height) - lineHeight / 2, font, text, Graphics.TEXT_JUSTIFY_CENTER);
@@ -198,7 +203,98 @@ function spinnerHasTrack() as Boolean {
     return false;
 }
 
-// Small loader in the same corner as the Start label. Returns the y just below it.
+function isqrt(value as Number) as Number {
+    if (value <= 0) {
+        return 0;
+    }
+    var x = value;
+    var y = (x + 1) / 2;
+    while (y < x) {
+        x = y;
+        y = (x + value / x) / 2;
+    }
+    return x;
+}
+
+// Radius of a circle that clears the text box, plus a few pixels of air.
+function textRingRadius(textW as Number, textH as Number) as Number {
+    var hw = (textW + 1) / 2;
+    var hh = (textH + 1) / 2;
+    var radius = isqrt(hw * hw + hh * hh) + 3;
+    if (radius < 8) {
+        radius = 8;
+    }
+    return radius;
+}
+
+function drawSpinnerArc(dc as Dc, x as Number, y as Number, radius as Number, angle as Number) as Void {
+    if (radius < 2) {
+        return;
+    }
+    var start = angle % 360;
+    if (start < 0) {
+        start += 360;
+    }
+    var end = start + 90;
+    if (end >= 360) {
+        end -= 360;
+    }
+    if (end == start) {
+        end = start + 1;
+    }
+    if (dc has :setAntiAlias) {
+        dc.setAntiAlias(true);
+    }
+    dc.setPenWidth(2);
+    if (spinnerHasTrack()) {
+        dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(x, y, radius, Graphics.ARC_CLOCKWISE, 0, 0);
+    }
+    dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
+    dc.drawArc(x, y, radius, Graphics.ARC_COUNTER_CLOCKWISE, start, end);
+    dc.setPenWidth(1);
+    if (dc has :setAntiAlias) {
+        dc.setAntiAlias(false);
+    }
+}
+
+// Orbit the top-right bubble Start label. The label is drawn afterwards.
+function drawBubbleStartSpinner(dc as Dc, width as Number, height as Number, angle as Number) as Void {
+    var text = tr("start");
+    var font = fitBubbleFont(dc, text);
+    var radius = textRingRadius(dc.getTextWidthInPixels(text, font), dc.getFontHeight(font));
+    var limit = (27 * height) / 176 - 2;
+    if (limit < 6) {
+        limit = 6;
+    }
+    if (radius > limit) {
+        radius = limit;
+    }
+    drawSpinnerArc(dc, bubbleCenterX(width), bubbleCenterY(height), radius, angle);
+}
+
+// Orbit the round top-right Start label. Returns the y just below the ring.
+function drawRoundStartSpinner(dc as Dc, width as Number, height as Number, angle as Number) as Number {
+    var text = tr("start");
+    var font = Graphics.FONT_SMALL;
+    var box = topRightTextBox(dc, width, height, text, font);
+    var centerX = box[0] as Number;
+    var textH = box[2] as Number;
+    var centerY = (box[1] as Number) + textH / 2;
+    var radius = textRingRadius(dc.getTextWidthInPixels(text, font), textH);
+    drawSpinnerArc(dc, centerX, centerY, radius, angle);
+    return centerY + radius;
+}
+
+// Orbit a Start label whose top-left of the glyphs is (x, top) with centered text.
+function drawCenteredStartSpinner(dc as Dc, x as Number, top as Number, font as Graphics.FontType, angle as Number) as Void {
+    var text = tr("start");
+    var textH = dc.getFontHeight(font);
+    var radius = textRingRadius(dc.getTextWidthInPixels(text, font), textH);
+    drawSpinnerArc(dc, x, top + textH / 2, radius, angle);
+}
+
+// Small loader used where there is no Start label, such as the saved screen.
 function drawSyncSpinner(dc as Dc, width as Number, height as Number, angle as Number) as Number {
     var x = 0;
     var y = 0;
@@ -221,31 +317,7 @@ function drawSyncSpinner(dc as Dc, width as Number, height as Number, angle as N
         x = width - inset;
         y = inset;
     }
-    var start = angle % 360;
-    if (start < 0) {
-        start += 360;
-    }
-    var end = start + 80;
-    if (end >= 360) {
-        end -= 360;
-    }
-    if (end == start) {
-        end = start + 1;
-    }
-    if (dc has :setAntiAlias) {
-        dc.setAntiAlias(true);
-    }
-    dc.setPenWidth(2);
-    if (spinnerHasTrack()) {
-        dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(x, y, radius, Graphics.ARC_CLOCKWISE, 0, 0);
-    }
-    dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
-    dc.drawArc(x, y, radius, Graphics.ARC_COUNTER_CLOCKWISE, start, end);
-    dc.setPenWidth(1);
-    if (dc has :setAntiAlias) {
-        dc.setAntiAlias(false);
-    }
+    drawSpinnerArc(dc, x, y, radius, angle);
     return y + radius;
 }
 

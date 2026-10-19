@@ -33,22 +33,24 @@ class HomeView extends WatchUi.View {
         var bubble = hasTopRightBubble();
         var cornerStart = hasRoundTopRightStart();
         var canStart = session.canStart() && session.currentPageTable() != null;
-        var usesCorner = bubble || cornerStart;
-        var showCornerLabel = canStart && usesCorner && !syncing;
         var y = compact ? height / 4 : height / 8;
         if (bubble) {
             y = (72 * height) / 176;
         }
-        if (syncing) {
-            var spinnerBottom = drawSyncSpinner(dc, width, height, spinner.angle);
-            if (cornerStart && spinnerBottom + 8 > y) {
-                y = spinnerBottom + 8;
+        if (canStart && bubble) {
+            if (syncing) {
+                drawBubbleStartSpinner(dc, width, height, spinner.angle);
             }
-        }
-        if (showCornerLabel && bubble) {
             drawBubbleText(dc, width, height, tr("start"), COLOR_HOLD);
-        } else if (showCornerLabel && cornerStart) {
-            var labelBottom = drawRoundTopRightText(dc, width, height, tr("start"), COLOR_HOLD);
+        } else if (canStart && cornerStart) {
+            var labelBottom = 0;
+            if (syncing) {
+                labelBottom = drawRoundStartSpinner(dc, width, height, spinner.angle);
+            }
+            var textBottom = drawRoundTopRightText(dc, width, height, tr("start"), COLOR_HOLD);
+            if (textBottom > labelBottom) {
+                labelBottom = textBottom;
+            }
             if (labelBottom + 8 > y) {
                 y = labelBottom + 8;
             }
@@ -89,8 +91,11 @@ class HomeView extends WatchUi.View {
         } else {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
             y = drawFitted(dc, cx, y, bodyFont, detail, maxLine);
-            if (canStart && !showCornerLabel) {
+            if (canStart && !bubble && !cornerStart) {
                 y += 8;
+                if (syncing) {
+                    drawCenteredStartSpinner(dc, cx, y, titleFont, spinner.angle);
+                }
                 dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, y, titleFont, tr("start"), Graphics.TEXT_JUSTIFY_CENTER);
             }
