@@ -44,6 +44,7 @@ const MAX_ROUNDS as Number = 40;
 const MAX_HR_SAMPLES as Number = 40;
 const HR_MIN_GAP_SEC as Number = 10;
 const TICK_MS as Number = 1000;
+const SPINNER_TICK_MS as Number = 150;
 const TRAINING_PULSE_SEC as Number = 15;
 const READY_PULSE_MS as Number = 10000;
 const MAX_PENDING as Number = 5;

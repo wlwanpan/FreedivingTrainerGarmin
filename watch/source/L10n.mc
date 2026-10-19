@@ -60,7 +60,6 @@ function trEn(key as String) as String {
     if (key.equals("okay")) { return "Okay"; }
     if (key.equals("saved")) { return "Saved"; }
     if (key.equals("paused")) { return "Paused"; }
-    if (key.equals("waitingPhone")) { return "Waiting for iPhone"; }
     if (key.equals("sentToPhone")) { return "Sent to iPhone"; }
     if (key.equals("weekComplete")) { return "Week complete"; }
     if (key.equals("savedOnPhone")) { return "Saved on iPhone"; }
@@ -94,7 +93,6 @@ function trFr(key as String) as String {
     if (key.equals("okay")) { return "OK"; }
     if (key.equals("saved")) { return "Enregistré"; }
     if (key.equals("paused")) { return "En pause"; }
-    if (key.equals("waitingPhone")) { return "En attente de l'iPhone"; }
     if (key.equals("sentToPhone")) { return "Envoyé à l'iPhone"; }
     if (key.equals("weekComplete")) { return "Semaine terminée"; }
     if (key.equals("savedOnPhone")) { return "Enregistré sur iPhone"; }
@@ -126,7 +124,6 @@ function trEs(key as String) as String {
     if (key.equals("okay")) { return "Vale"; }
     if (key.equals("saved")) { return "Guardado"; }
     if (key.equals("paused")) { return "Pausado"; }
-    if (key.equals("waitingPhone")) { return "Esperando el iPhone"; }
     if (key.equals("sentToPhone")) { return "Enviado al iPhone"; }
     if (key.equals("weekComplete")) { return "Semana completa"; }
     if (key.equals("savedOnPhone")) { return "Guardado en iPhone"; }
@@ -158,7 +155,6 @@ function trDe(key as String) as String {
     if (key.equals("okay")) { return "OK"; }
     if (key.equals("saved")) { return "Gespeichert"; }
     if (key.equals("paused")) { return "Pausiert"; }
-    if (key.equals("waitingPhone")) { return "Warte auf iPhone"; }
     if (key.equals("sentToPhone")) { return "An iPhone gesendet"; }
     if (key.equals("weekComplete")) { return "Woche fertig"; }
     if (key.equals("savedOnPhone")) { return "Auf iPhone gespeichert"; }
@@ -190,7 +186,6 @@ function trKo(key as String) as String {
     if (key.equals("okay")) { return "확인"; }
     if (key.equals("saved")) { return "저장됨"; }
     if (key.equals("paused")) { return "일시정지"; }
-    if (key.equals("waitingPhone")) { return "iPhone 대기 중"; }
     if (key.equals("sentToPhone")) { return "iPhone으로 전송됨"; }
     if (key.equals("weekComplete")) { return "주 완료"; }
     if (key.equals("savedOnPhone")) { return "iPhone에 저장됨"; }

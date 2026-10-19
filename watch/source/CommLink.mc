@@ -78,9 +78,7 @@ class CommLink {
         busy = false;
         lastOk = ok;
         flush();
-        if (ok) {
-            session.onTransmitOk();
-        }
+        session.onTransmitFinished(ok);
     }
 
     function flush() as Void {
@@ -94,6 +92,7 @@ class CommLink {
         queue = dropFirst(queue);
         busy = true;
         Communications.transmit(payload, null, listener);
+        session.onTransmitOk();
     }
 
     function phoneLikelyReachable() as Boolean {

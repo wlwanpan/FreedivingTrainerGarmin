@@ -4,17 +4,26 @@ import Toybox.WatchUi;
 
 class HomeView extends WatchUi.View {
     var session as SessionController;
+    var spinner as SyncSpinner;
 
     function initialize(owner as SessionController) {
         View.initialize();
         session = owner;
+        spinner = new SyncSpinner();
     }
 
     function onShow() as Void {
         session.startReadyPulse();
+        spinner.setActive(session.syncInProgress());
+    }
+
+    function onHide() as Void {
+        spinner.stop();
     }
 
     function onUpdate(dc as Dc) as Void {
+        var syncing = session.syncInProgress();
+        spinner.setActive(syncing);
         dc.setColor(COLOR_BG, COLOR_BG);
         dc.clear();
         var width = dc.getWidth();
@@ -24,13 +33,21 @@ class HomeView extends WatchUi.View {
         var bubble = hasTopRightBubble();
         var cornerStart = hasRoundTopRightStart();
         var canStart = session.canStart() && session.currentPageTable() != null;
+        var usesCorner = bubble || cornerStart;
+        var showCornerLabel = canStart && usesCorner && !syncing;
         var y = compact ? height / 4 : height / 8;
         if (bubble) {
             y = (72 * height) / 176;
         }
-        if (canStart && bubble) {
+        if (syncing) {
+            var spinnerBottom = drawSyncSpinner(dc, width, height, spinner.angle);
+            if (cornerStart && spinnerBottom + 8 > y) {
+                y = spinnerBottom + 8;
+            }
+        }
+        if (showCornerLabel && bubble) {
             drawBubbleText(dc, width, height, tr("start"), COLOR_HOLD);
-        } else if (canStart && cornerStart) {
+        } else if (showCornerLabel && cornerStart) {
             var labelBottom = drawRoundTopRightText(dc, width, height, tr("start"), COLOR_HOLD);
             if (labelBottom + 8 > y) {
                 y = labelBottom + 8;
@@ -39,12 +56,6 @@ class HomeView extends WatchUi.View {
         var bodyFont = compact ? Graphics.FONT_XTINY : Graphics.FONT_TINY;
         var titleFont = compact ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
         var maxLine = compact ? (width * 5) / 8 : width;
-
-        dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
-        if (session.pendingSync) {
-            dc.drawText(cx, y, Graphics.FONT_XTINY, tr("waitingPhone"), Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(Graphics.FONT_XTINY) + 2;
-        }
 
         if (session.phoneTraining && session.phoneConnected()) {
             dc.setColor(COLOR_ALERT, Graphics.COLOR_TRANSPARENT);
@@ -78,7 +89,7 @@ class HomeView extends WatchUi.View {
         } else {
             dc.setColor(COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
             y = drawFitted(dc, cx, y, bodyFont, detail, maxLine);
-            if (canStart && !bubble && !cornerStart) {
+            if (canStart && !showCornerLabel) {
                 y += 8;
                 dc.setColor(COLOR_HOLD, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, y, titleFont, tr("start"), Graphics.TEXT_JUSTIFY_CENTER);
