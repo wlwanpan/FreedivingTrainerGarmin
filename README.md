@@ -1,4 +1,4 @@
-# Freediving Trainer for Garmin
+# Freediver & Mermaid Apnea
 
 Connect IQ device app that runs CO2 and O2 breath-hold tables on a Garmin watch and syncs finished sessions to the [FreedivingTrainer](https://github.com/wlwanpan/FreedivingTrainer) iPhone app.
 

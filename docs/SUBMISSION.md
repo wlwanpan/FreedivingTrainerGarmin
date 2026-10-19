@@ -1,6 +1,6 @@
 ## DESCRIPTION
 
-Freediving Trainer runs CO2 and O2 breath-hold tables on your watch. It is a dry training timer for static apnea tables, with a large clock, a one-second countdown, and a vibrate or tone when the phase changes between breathe-up, hold, and rest. You can pause and resume. Leave the app on screen for the whole table. If you exit, the timer stops.
+Freediver & Mermaid Apnea runs CO2 and O2 breath-hold tables on your watch. It is a dry training timer for static apnea tables, with a large clock, a one-second countdown, and a vibrate or tone when the phase changes between breathe-up, hold, and rest. You can pause and resume. Leave the app on screen for the whole table. If you exit, the timer stops.
 
 You can train with the watch alone. Built-in tables are eight rounds with a 60-second breathe-up. The CO2 table holds for 90 seconds while the rest starts at 2 minutes and shortens by 15 seconds each round. The O2 table starts at a 60-second hold and adds 15 seconds each round, with a 2-minute rest. Swipe between the plan page, CO2, and O2, then press Start.
 
