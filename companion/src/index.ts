@@ -69,7 +69,7 @@ export function isGarminModuleAvailable(): boolean {
 }
 
 export function watchAppUUID(): string {
-  return native?.watchAppUUID() ?? '0328696e-cb77-51ad-9d18-afcb600b4221'
+  return native?.watchAppUUID() ?? 'a851fe4e-15ff-43a5-ba7b-6643c2b06a09'
 }
 
 export async function initialize(): Promise<void> {

@@ -4,8 +4,8 @@ The watch and the iOS app share an application UUID and Bluetooth. They do not s
 
 | | |
 |---|---|
-| Connect IQ application id | `0328696ecb7751ad9d18afcb600b4221` |
-| UUID (dashed) | `0328696e-cb77-51ad-9d18-afcb600b4221` |
+| Connect IQ application id | `a851fe4e15ff43a5ba7b6643c2b06a09` |
+| UUID (dashed) | `a851fe4e-15ff-43a5-ba7b-6643c2b06a09` |
 | iOS URL scheme | `freedivingtrainer` |
 | `watchDetail` | `garmin` |
 

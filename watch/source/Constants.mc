@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-const APP_UUID as String = "0328696e-cb77-51ad-9d18-afcb600b4221";
+const APP_UUID as String = "a851fe4e-15ff-43a5-ba7b-6643c2b06a09";
 const WATCH_DETAIL as String = "garmin";
 const SOURCE_WATCH as String = "watch";
 

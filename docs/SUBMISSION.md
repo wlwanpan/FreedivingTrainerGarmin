@@ -1,5 +1,26 @@
-## DESCRIPTION
+# Garmin Connect IQ — Store Listing Copy
 
+Paste these fields into the Connect IQ Store app submission form at [apps.garmin.com/developer](https://apps.garmin.com/developer/).
+
+---
+
+## Title
+
+Maximum 50 characters. Current length: **25**.
+
+```
+Freediver & Mermaid Apnea
+```
+
+Note: the on-watch string resource uses `Freediver and Mermaid Apnea` (Connect IQ rejects `&` in app name resources). The store listing title above may use `&`.
+
+---
+
+## Description
+
+Maximum 4000 characters. Current length: **1670**.
+
+```
 Freediver & Mermaid Apnea runs CO2 and O2 breath-hold tables on your watch. It is a dry training timer for static apnea tables, with a large clock, a one-second countdown, and a vibrate or tone when the phase changes between breathe-up, hold, and rest. You can pause and resume. Leave the app on screen for the whole table. If you exit, the timer stops.
 
 You can train with the watch alone. Built-in tables are eight rounds with a 60-second breathe-up. The CO2 table holds for 90 seconds while the rest starts at 2 minutes and shortens by 15 seconds each round. The O2 table starts at a 60-second hold and adds 15 seconds each round, with a 2-minute rest. Swipe between the plan page, CO2, and O2, then press Start.
@@ -9,3 +30,4 @@ Pair it with the Freediving Trainer app on iPhone to follow the plan you already
 The iPhone app is optional. CO2 and O2 tables still run with no phone connected. A plan session requires the iPhone app and an unlocked plan. English, French, Spanish, German, and Korean.
 
 This app measures heart rate only to include it with the training result sent to your iPhone. It does not diagnose, treat, or monitor a medical condition, and it is not a dive computer.
+```

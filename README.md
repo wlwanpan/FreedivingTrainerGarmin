@@ -6,7 +6,7 @@ The user installs FreedivingTrainer from the App Store, then installs this app f
 
 | | |
 |---|---|
-| Application id | `0328696ecb7751ad9d18afcb600b4221` |
+| Application id | `a851fe4e15ff43a5ba7b6643c2b06a09` |
 | Type | watch-app (Monkey C, Connect IQ 3.2+) |
 | Companion | Expo native module around `ConnectIQ.framework` |
 | iOS scheme | `freedivingtrainer` |

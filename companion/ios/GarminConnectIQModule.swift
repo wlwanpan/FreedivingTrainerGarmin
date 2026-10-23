@@ -2,7 +2,7 @@ import ExpoModulesCore
 import Foundation
 import ConnectIQ
 
-private let watchAppUUID = UUID(uuidString: "0328696E-CB77-51AD-9D18-AFCB600B4221")!
+private let watchAppUUID = UUID(uuidString: "A851FE4E-15FF-43A5-BA7B-6643C2B06A09")!
 private let urlScheme = "freedivingtrainer"
 private let restorationId = "freedivingtrainer.garmin.connectiq"
 private let lastNextSessionKey = "garmin.lastNextSession"

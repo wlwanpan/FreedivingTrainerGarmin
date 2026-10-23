@@ -1,6 +1,6 @@
 # expo-garmin-connect-iq
 
-Expo native module that links [ConnectIQ.framework](https://github.com/garmin/connectiq-companion-app-sdk-ios) into the FreedivingTrainer iOS app. The watch app UUID is `0328696e-cb77-51ad-9d18-afcb600b4221`. The two store listings share that UUID and Bluetooth, not a bundle id.
+Expo native module that links [ConnectIQ.framework](https://github.com/garmin/connectiq-companion-app-sdk-ios) into the FreedivingTrainer iOS app. The watch app UUID is `a851fe4e-15ff-43a5-ba7b-6643c2b06a09`. The two store listings share that UUID and Bluetooth, not a bundle id.
 
 ## Add to FreedivingTrainer
 
