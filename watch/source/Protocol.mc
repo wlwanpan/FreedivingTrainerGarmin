@@ -199,10 +199,10 @@ function buildHeartRate(bpm as Number, at as Number) as Dictionary {
     };
 }
 
-function buildWatchReady() as Dictionary {
+function buildWatchReady(updatedAt as Number) as Dictionary {
     return {
         "type" => TYPE_WATCH_READY,
-        "updatedAt" => nowSec()
+        "updatedAt" => updatedAt
     };
 }
 
@@ -294,6 +294,7 @@ function testParseSlimSession(logger as Logger) as Boolean {
 
 (:test)
 function testBuildWatchReady(logger as Logger) as Boolean {
-    var payload = buildWatchReady();
-    return asTextOr(payload.get("type"), "").equals(TYPE_WATCH_READY);
+    var payload = buildWatchReady(1700000000);
+    return asTextOr(payload.get("type"), "").equals(TYPE_WATCH_READY)
+        && asInt(payload.get("updatedAt"), 0) == 1700000000;
 }

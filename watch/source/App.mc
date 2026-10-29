@@ -17,7 +17,7 @@ class FreedivingTrainerApp extends Application.AppBase {
         controller.restore();
         link.start();
         controller.flushPending();
-        controller.startReadyPulse();
+        // HomeView.onShow asks for a plan. Do not also send watchReady here.
         session = controller;
         comm = link;
     }

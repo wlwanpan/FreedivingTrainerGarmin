@@ -50,23 +50,39 @@ Lock / complete variants set `locked: true` or `complete: true` and omit `rounds
 
 `sync` is `""`, `"plan"`, or `"erase"`. `syncedAt` is completed-at **seconds** the phone has saved (the watch drops matching pending rows).
 
+A live phone timer can arrive on its own, without the tables:
+
+```json
+{ "type": "phoneTraining", "running": true, "paused": false, "name": "CO2", "phase": "hold", "startedAt": 1700000000000 }
+```
+
+`running: false` clears that notice. The watch keeps `name` and draws it under the training-on-iPhone line. It clears `name` when `running` is false. It does not read `paused`, `phase`, or `startedAt`. On this message `startedAt` is epoch milliseconds. `phoneTrainingMessage` in `companion/src/protocol.ts` builds the payload.
+
+`planKey` is opaque. `wirePlanKey` leaves a key of 96 characters or fewer unchanged. A longer key becomes `plan:` plus an FNV-1a 32-bit hex. The watch stores that string and echoes it on `sessionComplete`.
+
 After a save, also send:
 
 ```json
 { "type": "ack", "saved": true, "completedAt": 1700001000, "syncedAt": [1700001000] }
 ```
 
-`slimNextSession` and `buildAck` in `companion/src/protocol.ts` build these payloads.
-
-The phone should call `sendNextSession` whenever the current session changes, even if no Garmin is connected yet. The native module keeps the last payload and delivers it when a watch pairs or when the watch app opens.
+`slimNextSession` and `buildAck` in `companion/src/protocol.ts` build the session and ack payloads. The iPhone app decides when to send them. The native module in this repo is a reference copy: it does not cache a `nextSession` and push it again when a watch pairs or when `watchReady` arrives. The module that ships is in the FreedivingTrainer iPhone app.
 
 ## Watch → phone (`Communications.transmit` → `IQAppMessageDelegate`)
 
-When the watch app opens (and while home still has no plan), it asks the phone for the current session:
+The watch sends `watchReady` only while it still needs a phone plan: it is not running a table, not `locked`, not `complete`, and it has no current plan. `HomeView.onShow` is the only place that starts that ask.
 
 ```json
 { "type": "watchReady", "updatedAt": 1700000000 }
 ```
+
+`updatedAt` is Unix seconds, chosen once for that ask. A retry after a failed transmit reuses the same value. After that packet is delivered, the watch does not send another until home is shown again and a plan is still missing. Any handled `nextSession` stops the 10 second timer, including a tables-only body (`tables` present, no slot `name` / `rounds`, and not `locked` or `complete`).
+
+Do not send the full session on every `watchReady`. The shipping iPhone app sends the current tables when `updatedAt` is newer than the last successful table delivery. A repeat of the same `updatedAt` is the same ask.
+
+A `watchReady` that is already queued or in flight is dropped. A queued `watchTraining` that has not started transmitting is replaced by the latest snapshot. `sessionComplete` and the packet already in flight are left alone.
+
+The corner spinner runs while a transmit is in flight, and after a `sessionComplete` transmit succeeds until an `ack` or `syncedAt` list removes those rows. A successful `watchReady` does not keep the spinner up.
 
 Live heart rate, about every 10 seconds while both apps are connected:
 

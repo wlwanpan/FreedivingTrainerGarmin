@@ -6,6 +6,8 @@ import {
   buildAck,
   toUnixMs,
   buildCo2Rounds,
+  phoneTrainingMessage,
+  wirePlanKey,
 } from '../companion/src/protocol.ts'
 
 describe('unix timestamps', () => {
@@ -59,6 +61,38 @@ describe('slim next session', () => {
     assert.equal(payload.week, 1)
     assert.deepEqual(payload.syncedAt, [1700000000])
     assert.equal('schedule' in payload, false)
+    assert.equal(payload.planKey, 'beginner:1:')
+  })
+
+  it('hashes a plan key longer than 96 characters', () => {
+    const custom = JSON.stringify({ weeks: 12, sessions: Array.from({ length: 48 }, () => 'co2') })
+    const planKey = `custom:1:${custom}:freediver`
+    assert.ok(planKey.length > 96)
+    const wire = wirePlanKey(planKey)
+    assert.equal(wire, wirePlanKey(planKey))
+    assert.notEqual(wire, planKey)
+    assert.equal(wire.startsWith('plan:'), true)
+    assert.ok(wire.length < 24)
+    assert.equal(wirePlanKey('beginner:1:'), 'beginner:1:')
+    const payload = slimNextSession({ type: 'nextSession', planKey, locked: true })
+    assert.equal(payload.planKey, wire)
+  })
+
+  it('builds a standalone phoneTraining message', () => {
+    const live = phoneTrainingMessage({
+      running: true,
+      paused: false,
+      name: 'CO2',
+      phase: 'hold',
+      startedAt: 10,
+    })
+    assert.equal(live.type, 'phoneTraining')
+    assert.equal(live.name, 'CO2')
+    assert.equal(live.running, true)
+    const idle = phoneTrainingMessage(undefined)
+    assert.equal(idle.type, 'phoneTraining')
+    assert.equal(idle.running, false)
+    assert.equal(idle.name, undefined)
   })
 
   it('keeps lock and complete snapshots small', () => {
@@ -108,10 +142,13 @@ describe('watch completion', () => {
 })
 
 describe('live watch messages', () => {
-  it('parses watchReady so the phone can push the current plan after pairing', () => {
+  it('parses a repeated watchReady updatedAt as the same ask', () => {
     const ready = parseWatchMessage({ type: 'watchReady', updatedAt: 1700000000 })
+    const repeat = parseWatchMessage({ type: 'watchReady', updatedAt: 1700000000 })
     assert.equal(ready.type, 'watchReady')
+    assert.equal(repeat.type, 'watchReady')
     assert.equal(ready.updatedAt, 1700000000000)
+    assert.equal(repeat.updatedAt, ready.updatedAt)
   })
 
   it('parses heartRate and watchTraining', () => {
