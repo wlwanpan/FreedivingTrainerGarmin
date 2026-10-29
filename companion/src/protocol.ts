@@ -66,6 +66,23 @@ export type HeartRateSample = {
   at: number
 }
 
+const PLAN_KEY_LIMIT = 96
+
+/** Keep short plan ids intact. A custom plan embeds its JSON in the key and can be many kilobytes. */
+export function wirePlanKey(planKey: string): string {
+  if (planKey.length <= PLAN_KEY_LIMIT) return planKey
+  let hash = 0x811c9dc5
+  for (let index = 0; index < planKey.length; index += 1) {
+    hash ^= planKey.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return `plan:${(hash >>> 0).toString(16)}`
+}
+
+export function phoneTrainingMessage(training: PhoneTraining | undefined): { type: 'phoneTraining' } & PhoneTraining {
+  return { type: 'phoneTraining', ...(training ?? { running: false }) }
+}
+
 export type WatchMessage =
   | {
       type: 'watchReady'
@@ -132,7 +149,7 @@ export function slimNextSession(input: NextSessionMessage): NextSessionMessage {
     trainingSound: input.trainingSound,
     phoneTraining: input.phoneTraining ?? { running: false },
     loggedCount: input.loggedCount,
-    planKey: input.planKey ?? '',
+    planKey: wirePlanKey(input.planKey ?? ''),
     sync: input.sync ?? '',
     syncedAt: syncedAtSeconds(input.syncedAt ?? []),
   }

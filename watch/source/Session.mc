@@ -15,6 +15,7 @@ class SessionController {
     var locked as Boolean = false;
     var planComplete as Boolean = false;
     var phoneTraining as Boolean = false;
+    var phoneTrainingName as String = "";
     var pendingSync as Boolean = false;
     var awaitingPhone as Boolean = false;
     var lostNotice as String = "";
@@ -48,6 +49,8 @@ class SessionController {
 
     var ticker as Timer.Timer?;
     var readyTicker as Timer.Timer?;
+    var readyUpdatedAt as Number = 0;
+    var readyDelivered as Boolean = false;
     var viewKind as Number = 0;
 
     function initialize() {
@@ -184,7 +187,17 @@ class SessionController {
         if (record == null) {
             return;
         }
-        phoneTraining = asFlag(record.get("running"));
+        var active = asFlag(record.get("running"));
+        phoneTraining = active;
+        if (!active) {
+            phoneTrainingName = "";
+        } else {
+            var name = asText(record.get("name"));
+            if (name != null) {
+                phoneTrainingName = name as String;
+            }
+        }
+        WatchUi.requestUpdate();
     }
 
     function applyPlan(message as Dictionary) as Void {
@@ -247,9 +260,10 @@ class SessionController {
             plan = parsePlan(message);
         }
         savePlanSnapshot();
-        if (!needsPhonePlan()) {
-            stopReadyPulse();
-        }
+        // A tables-only nextSession has no slot, so plan stays null. Stop asking anyway.
+        stopReadyPulse();
+        readyUpdatedAt = 0;
+        readyDelivered = false;
     }
 
     function canStart() as Boolean {
@@ -264,8 +278,8 @@ class SessionController {
     }
 
     // Queued completions stay on the watch until the phone ACKs. That queue
-    // does not block training. The corner spinner is only while a transfer
-    // is in flight or the last send is still waiting for an ACK.
+    // does not block training. The corner spinner is on while a transfer is
+    // in flight, or after a sessionComplete transmit until the phone ACKs.
     function syncInProgress() as Boolean {
         if (comm != null && (comm as CommLink).busy) {
             return true;
@@ -273,9 +287,17 @@ class SessionController {
         return pendingSync && awaitingPhone;
     }
 
-    function onTransmitFinished(ok as Boolean) as Void {
-        if (ok && pendingSync) {
+    function onTransmitFinished(ok as Boolean, payload as Dictionary?) as Void {
+        var type = "";
+        if (payload != null) {
+            type = asTextOr((payload as Dictionary).get("type"), "");
+        }
+        if (ok && pendingSync && type.equals(TYPE_SESSION_COMPLETE)) {
             awaitingPhone = true;
+        }
+        if (ok && type.equals(TYPE_WATCH_READY)) {
+            readyDelivered = true;
+            stopReadyPulse();
         }
         onTransmitOk();
     }
@@ -669,14 +691,18 @@ class SessionController {
     }
 
     function requestPhonePlan() as Void {
-        if (running || comm == null) {
+        if (!needsPhonePlan() || readyDelivered || comm == null) {
             return;
         }
-        (comm as CommLink).send(buildWatchReady());
+        if (readyUpdatedAt <= 0) {
+            readyUpdatedAt = nowSec();
+        }
+        (comm as CommLink).send(buildWatchReady(readyUpdatedAt));
     }
 
+    // HomeView.onShow is the only caller. A second call while the timer is
+    // running does not send another watchReady.
     function startReadyPulse() as Void {
-        requestPhonePlan();
         if (!needsPhonePlan()) {
             stopReadyPulse();
             return;
@@ -684,12 +710,20 @@ class SessionController {
         if (readyTicker != null) {
             return;
         }
+        if (readyDelivered) {
+            readyDelivered = false;
+            readyUpdatedAt = 0;
+        }
+        requestPhonePlan();
+        if (readyDelivered || !needsPhonePlan()) {
+            return;
+        }
         readyTicker = new Timer.Timer();
         (readyTicker as Timer.Timer).start(method(:onReadyPulse), READY_PULSE_MS, true);
     }
 
     function onReadyPulse() as Void {
-        if (!needsPhonePlan()) {
+        if (!needsPhonePlan() || readyDelivered) {
             stopReadyPulse();
             return;
         }
@@ -705,7 +739,6 @@ class SessionController {
 
     function showHome() as Void {
         viewKind = 0;
-        startReadyPulse();
         WatchUi.switchToView(new HomeView(self), new HomeDelegate(self), WatchUi.SLIDE_RIGHT);
     }
 
@@ -827,11 +860,24 @@ function testPendingSyncDoesNotBlockStart(logger as Test.Logger) as Boolean {
         return false;
     }
     link.busy = false;
-    session.onTransmitFinished(true);
-    if (!session.syncInProgress()) {
+    session.onTransmitFinished(true, {
+        "type" => TYPE_WATCH_READY,
+        "updatedAt" => 1700000000
+    } as Dictionary);
+    if (session.syncInProgress() || session.awaitingPhone) {
         return false;
     }
-    session.onTransmitFinished(false);
+    session.onTransmitFinished(true, {
+        "type" => TYPE_SESSION_COMPLETE,
+        "completedAt" => 1700001000
+    } as Dictionary);
+    if (!session.syncInProgress() || !session.awaitingPhone) {
+        return false;
+    }
+    session.onTransmitFinished(false, {
+        "type" => TYPE_SESSION_COMPLETE,
+        "completedAt" => 1700001000
+    } as Dictionary);
     if (!session.syncInProgress()) {
         return false;
     }
@@ -860,4 +906,125 @@ function testPhonePlanInstallsWhenIdle(logger as Test.Logger) as Boolean {
     return asTextOr((session.plan as Dictionary).get("name"), "").equals("Week 1 · CO2")
         && session.planKey.equals("beginner:1:")
         && !session.needsPhonePlan();
+}
+
+(:test)
+function testPhoneTrainingKeepsName(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    session.handlePhone({
+        "type" => TYPE_PHONE_TRAINING,
+        "running" => true,
+        "name" => "CO2",
+        "phase" => "hold"
+    } as Dictionary);
+    if (!session.phoneTraining || !session.phoneTrainingName.equals("CO2")) {
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_PHONE_TRAINING,
+        "running" => true,
+        "phase" => "rest"
+    } as Dictionary);
+    if (!session.phoneTraining || !session.phoneTrainingName.equals("CO2")) {
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_PHONE_TRAINING,
+        "running" => false,
+        "name" => "CO2"
+    } as Dictionary);
+    return !session.phoneTraining && session.phoneTrainingName.length() == 0;
+}
+
+(:test)
+function testReadyPulseSkipsInstalledPlan(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    var link = new QuietComm(session);
+    session.setComm(link);
+    session.handlePhone({
+        "type" => TYPE_NEXT_SESSION,
+        "name" => "Week 1 · CO2",
+        "tableType" => "co2",
+        "breatheUpSeconds" => 60,
+        "holdSeconds" => 90,
+        "restSeconds" => 120,
+        "rounds" => [{"hold" => 90, "rest" => 120}],
+        "week" => 1,
+        "sessionIndex" => 1,
+        "planKey" => "beginner:1:"
+    } as Dictionary);
+    session.startReadyPulse();
+    return session.readyTicker == null && link.queue.size() == 0 && link.inFlight == null;
+}
+
+(:test)
+function testReadyPulseReusesStampUntilDelivery(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    var link = new QuietComm(session);
+    session.setComm(link);
+    session.startReadyPulse();
+    if (session.readyTicker == null || link.inFlight == null || session.readyUpdatedAt <= 0) {
+        session.stopReadyPulse();
+        return false;
+    }
+    var stamp = session.readyUpdatedAt;
+    if (asInt((link.inFlight as Dictionary).get("updatedAt"), 0) != stamp) {
+        session.stopReadyPulse();
+        return false;
+    }
+    session.startReadyPulse();
+    if (link.queue.size() != 0 || asInt((link.inFlight as Dictionary).get("updatedAt"), 0) != stamp) {
+        session.stopReadyPulse();
+        return false;
+    }
+    link.onSent(false);
+    session.onReadyPulse();
+    if (session.readyUpdatedAt != stamp || link.inFlight == null) {
+        session.stopReadyPulse();
+        return false;
+    }
+    if (asInt((link.inFlight as Dictionary).get("updatedAt"), 0) != stamp) {
+        session.stopReadyPulse();
+        return false;
+    }
+    link.onSent(true);
+    if (!session.readyDelivered || session.readyTicker != null || link.inFlight != null) {
+        session.stopReadyPulse();
+        return false;
+    }
+    session.onReadyPulse();
+    if (link.inFlight != null || link.queue.size() != 0 || session.readyUpdatedAt != stamp) {
+        session.stopReadyPulse();
+        return false;
+    }
+    session.pendingSync = true;
+    if (session.awaitingPhone || session.syncInProgress()) {
+        session.stopReadyPulse();
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_NEXT_SESSION,
+        "tables" => {
+            "breatheUpSeconds" => 60,
+            "co2" => {
+                "name" => "CO2",
+                "tableType" => "co2",
+                "holdSeconds" => 90,
+                "restSeconds" => 120,
+                "rounds" => [{"hold" => 90, "rest" => 120}]
+            },
+            "o2" => {
+                "name" => "O2",
+                "tableType" => "o2",
+                "holdSeconds" => 60,
+                "restSeconds" => 120,
+                "rounds" => [{"hold" => 60, "rest" => 120}]
+            }
+        }
+    } as Dictionary);
+    return session.readyTicker == null
+        && session.plan == null
+        && session.needsPhonePlan()
+        && !session.readyDelivered
+        && session.readyUpdatedAt == 0;
 }

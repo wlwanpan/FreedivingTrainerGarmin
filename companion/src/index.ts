@@ -8,6 +8,8 @@ export {
 } from './uuid'
 export {
   slimNextSession,
+  phoneTrainingMessage,
+  wirePlanKey,
   buildAck,
   parseWatchMessage,
   toUnixMs,

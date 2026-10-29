@@ -63,6 +63,11 @@ class HomeView extends WatchUi.View {
             dc.setColor(COLOR_ALERT, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y, bodyFont, tr("trainingOnPhone"), Graphics.TEXT_JUSTIFY_CENTER);
             y += dc.getFontHeight(bodyFont) + 4;
+            if (session.phoneTrainingName.length() > 0) {
+                dc.setColor(COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
+                y = drawFitted(dc, cx, y, bodyFont, session.phoneTrainingName, maxLine);
+                y += 4;
+            }
         } else if (session.lostNotice.length() > 0) {
             dc.setColor(COLOR_ALERT, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y, Graphics.FONT_XTINY, session.lostNotice, Graphics.TEXT_JUSTIFY_CENTER);
