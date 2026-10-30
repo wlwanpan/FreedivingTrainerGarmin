@@ -131,7 +131,7 @@ class CommLink {
     }
 
     function onSent(ok as Boolean) as Void {
-        var sent as Dictionary? = inFlight;
+        var sent = inFlight;
         inFlight = null;
         busy = false;
         lastOk = ok;
