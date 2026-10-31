@@ -44,6 +44,7 @@ class SessionController {
     var lastHrBpm as Number = 0;
     var lastPulseAt as Number = 0;
     var captureSamples as Boolean = false;
+    var hrEnabled as Boolean = false;
     var hapticEnabled as Boolean = true;
     var soundEnabled as Boolean = true;
 
@@ -197,6 +198,7 @@ class SessionController {
                 phoneTrainingName = name as String;
             }
         }
+        syncHeartRate();
         WatchUi.requestUpdate();
     }
 
@@ -346,7 +348,7 @@ class SessionController {
         phaseTitle = "";
         remaining = 0;
         stopReadyPulse();
-        startHeartRate();
+        syncHeartRate();
         startClock();
         advance();
         publishTraining();
@@ -378,12 +380,12 @@ class SessionController {
 
     function abort(notify as Boolean) as Void {
         stopClock();
-        stopHeartRate();
         running = false;
         paused = false;
         finishing = false;
         finished = false;
         captureSamples = false;
+        syncHeartRate();
         phaseTitle = "";
         roundText = "";
         remaining = 0;
@@ -457,7 +459,7 @@ class SessionController {
         remaining = 0;
         sendCompletion();
         captureSamples = false;
-        stopHeartRate();
+        syncHeartRate();
         playFeedback(true);
         publishTraining();
         showDone();
@@ -513,14 +515,37 @@ class SessionController {
         }
     }
 
+    // The watch's own table samples heart rate. A phone-led session does too,
+    // so a connected watch can stream bpm while it is not running a table.
+    function heartRateWanted() as Boolean {
+        return running || phoneTraining;
+    }
+
+    function syncHeartRate() as Void {
+        if (heartRateWanted()) {
+            startHeartRate();
+            return;
+        }
+        stopHeartRate();
+    }
+
     function startHeartRate() as Void {
-        Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE]);
-        Sensor.enableSensorEvents(method(:onSensor));
+        if (hrEnabled) {
+            return;
+        }
+        if (Sensor has :setEnabledSensors) {
+            Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE]);
+            Sensor.enableSensorEvents(method(:onSensor));
+        }
+        hrEnabled = true;
     }
 
     function stopHeartRate() as Void {
-        Sensor.enableSensorEvents(null);
-        Sensor.setEnabledSensors([]);
+        if (hrEnabled && Sensor has :setEnabledSensors) {
+            Sensor.enableSensorEvents(null);
+            Sensor.setEnabledSensors([]);
+        }
+        hrEnabled = false;
         bpm = 0;
     }
 
@@ -528,7 +553,13 @@ class SessionController {
         if (info.heartRate == null) {
             return;
         }
-        var value = info.heartRate as Number;
+        acceptHeartRate(info.heartRate as Number);
+    }
+
+    function acceptHeartRate(value as Number) as Void {
+        if (!heartRateWanted()) {
+            return;
+        }
         if (value < 30 || value > 230) {
             return;
         }
@@ -547,7 +578,7 @@ class SessionController {
         if (captureSamples) {
             addSample(value, at);
         }
-        if (comm != null && running) {
+        if (comm != null) {
             (comm as CommLink).send(buildHeartRate(value, at));
         }
         WatchUi.requestUpdate();
@@ -934,6 +965,73 @@ function testPhoneTrainingKeepsName(logger as Test.Logger) as Boolean {
         "name" => "CO2"
     } as Dictionary);
     return !session.phoneTraining && session.phoneTrainingName.length() == 0;
+}
+
+(:test)
+function testPhoneTrainingStreamsHeartRate(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    var link = new QuietComm(session);
+    session.setComm(link);
+    session.acceptHeartRate(72);
+    if (link.queue.size() != 0 || link.inFlight != null || session.hrEnabled) {
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_PHONE_TRAINING,
+        "running" => true,
+        "name" => "CO2",
+        "phase" => "hold"
+    } as Dictionary);
+    if (!session.hrEnabled || session.running || session.captureSamples) {
+        return false;
+    }
+    session.acceptHeartRate(80);
+    if (link.inFlight == null) {
+        return false;
+    }
+    if (!asTextOr((link.inFlight as Dictionary).get("type"), "").equals(TYPE_HEART_RATE)) {
+        return false;
+    }
+    if (asInt((link.inFlight as Dictionary).get("bpm"), 0) != 80 || session.samples.size() != 0) {
+        return false;
+    }
+    session.acceptHeartRate(90);
+    if (link.queue.size() != 0) {
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_PHONE_TRAINING,
+        "running" => false
+    } as Dictionary);
+    return !session.hrEnabled && !session.phoneTraining && session.bpm == 0;
+}
+
+(:test)
+function testWatchTableHeartRateSurvivesPhoneIdle(logger as Test.Logger) as Boolean {
+    var session = new SessionController();
+    var link = new QuietComm(session);
+    session.setComm(link);
+    if (!session.startCo2() || !session.hrEnabled || !session.captureSamples) {
+        return false;
+    }
+    link.queue = [] as Array<Dictionary>;
+    link.inFlight = null;
+    link.busy = false;
+    session.acceptHeartRate(66);
+    if (link.inFlight == null) {
+        return false;
+    }
+    if (!asTextOr((link.inFlight as Dictionary).get("type"), "").equals(TYPE_HEART_RATE)) {
+        return false;
+    }
+    if (session.samples.size() != 1) {
+        return false;
+    }
+    session.handlePhone({
+        "type" => TYPE_PHONE_TRAINING,
+        "running" => false
+    } as Dictionary);
+    return session.running && session.hrEnabled && session.captureSamples;
 }
 
 (:test)
