@@ -84,7 +84,7 @@ A `watchReady` that is already queued or in flight is dropped. A queued `watchTr
 
 The corner spinner runs while a transmit is in flight, and after a `sessionComplete` transmit succeeds until an `ack` or `syncedAt` list removes those rows. A successful `watchReady` does not keep the spinner up.
 
-Live heart rate, about every 10 seconds while both apps are connected:
+Live heart rate, about every 10 seconds (`HR_MIN_GAP_SEC`). The watch sends this while its own table is running, and also while `phoneTraining.running` is true and the watch is not running a table. Phone-led samples are streamed only. They are not stored on the watch or copied into `sessionComplete`.
 
 ```json
 { "type": "heartRate", "bpm": 68, "at": 1700000500 }
